@@ -254,8 +254,14 @@ const synthesizeScene = async (
   language: string,
 ): Promise<string> => {
   if (getEnv("ELEVENLABS_API_KEY") && getEnv("ELEVENLABS_VOICE_ID")) {
-    await synthesizeWithElevenLabs(narration, outputPath);
-    return "elevenlabs";
+    try {
+      await synthesizeWithElevenLabs(narration, outputPath);
+      return "elevenlabs";
+    } catch (error) {
+      console.warn(
+        `Voice Agent: ElevenLabs TTS failed (${error instanceof Error ? error.message : String(error)}). Falling back to other providers.`,
+      );
+    }
   }
 
   if (getEnv("OPENAI_API_KEY")) {
@@ -294,6 +300,7 @@ export const generateVoice = async (
       throw new Error(`Voice Agent: scene "${scene.id}" is missing narration.`);
     }
 
+    console.log(`Voice Agent: synthesizing ${scene.id}...`);
     const relativeFile = `${PATHS.voiceDir}/${scene.id}.mp3`.replace(
       /^public\//,
       "",
@@ -315,6 +322,9 @@ export const generateVoice = async (
           ? targetDurationSeconds
           : Math.max(scene.durationInSeconds, targetDurationSeconds),
     });
+    console.log(
+      `Voice Agent: finished ${scene.id} (${audioDurationSeconds.toFixed(2)}s)`,
+    );
   }
 
   console.log(`Voice Agent: using ${provider}`);
