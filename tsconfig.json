@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "strict": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "lib": ["es2015"],
     "esModuleInterop": true,
