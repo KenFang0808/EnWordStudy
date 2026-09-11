@@ -14,6 +14,11 @@ const DEFAULT_SAY_VOICE = "Samantha";
 const DEFAULT_SAY_RATE = "170";
 const INDEX_TTS_DEFAULT_ROOT = "/Users/bytedance/index-tts";
 const INDEX_TTS_DEFAULT_DEVICE = "mps";
+const FISH_DEFAULT_MODEL = "s2-pro";
+const FISH_DEFAULT_SPEED = 1;
+const FISH_DEFAULT_TEMPERATURE = 0.7;
+const FISH_DEFAULT_TOP_P = 0.7;
+const FISH_DEFAULT_LATENCY = "normal";
 const ELEVENLABS_DEFAULT_MODEL = "eleven_multilingual_v2";
 const ELEVENLABS_DEFAULT_STABILITY = 0.45;
 const ELEVENLABS_DEFAULT_SIMILARITY_BOOST = 0.8;
@@ -181,6 +186,45 @@ const synthesizeWithOpenAI = async (
   writeFileSync(outputPath, new Uint8Array(await response.arrayBuffer()));
 };
 
+const synthesizeWithFishAudio = async (
+  narration: string,
+  outputPath: string,
+): Promise<void> => {
+  const apiKey = getEnv("FISH_API_KEY");
+  if (!apiKey) {
+    throw new Error("FISH_API_KEY is missing.");
+  }
+
+  const response = await fetch("https://api.fish.audio/v1/tts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      model: getEnv("FISH_MODEL") ?? FISH_DEFAULT_MODEL,
+    },
+    body: JSON.stringify({
+      text: narration,
+      reference_id: getEnv("FISH_REFERENCE_ID") || undefined,
+      temperature: parseNumberEnv("FISH_TEMPERATURE", FISH_DEFAULT_TEMPERATURE),
+      top_p: parseNumberEnv("FISH_TOP_P", FISH_DEFAULT_TOP_P),
+      prosody: {
+        speed: parseNumberEnv("FISH_SPEED", FISH_DEFAULT_SPEED),
+      },
+      latency: getEnv("FISH_LATENCY") ?? FISH_DEFAULT_LATENCY,
+      normalize: true,
+      format: "mp3",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Fish Audio TTS failed (${response.status}): ${await response.text()}`,
+    );
+  }
+
+  writeFileSync(outputPath, new Uint8Array(await response.arrayBuffer()));
+};
+
 const synthesizeWithElevenLabs = async (
   narration: string,
   outputPath: string,
@@ -260,6 +304,17 @@ const synthesizeScene = async (
     } catch (error) {
       console.warn(
         `Voice Agent: ElevenLabs TTS failed (${error instanceof Error ? error.message : String(error)}). Falling back to other providers.`,
+      );
+    }
+  }
+
+  if (getEnv("FISH_API_KEY")) {
+    try {
+      await synthesizeWithFishAudio(narration, outputPath);
+      return "fish-audio";
+    } catch (error) {
+      console.warn(
+        `Voice Agent: Fish Audio TTS failed (${error instanceof Error ? error.message : String(error)}). Falling back to other providers.`,
       );
     }
   }
