@@ -23,17 +23,65 @@ const SCENE_PLAN: Array<{
   { id: "outro", type: "outro", sectionIndex: "closing" },
 ];
 
+const closingSentences = (script: Script): string[] =>
+  script.closing
+    .split(/(?<=\.)\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+const OUTRO_TEMPLATES: Array<{
+  narration: (script: Script) => string;
+  heading: (script: Script) => string;
+}> = [
+  {
+    narration: (script) =>
+      `Now you know how to recognize and use "${script.topic}" more naturally.`,
+    heading: (script) => `Use "${script.topic}" naturally`,
+  },
+  {
+    narration: (script) =>
+      `Keep "${script.topic}" in mind the next time you want a more precise, vivid way to describe this idea.`,
+    heading: (script) => `Remember "${script.topic}"`,
+  },
+  {
+    narration: (script) =>
+      `The next time you hear or read "${script.topic}", you will be able to catch its meaning much faster.`,
+    heading: (script) => `Spot "${script.topic}" faster`,
+  },
+  {
+    narration: (script) =>
+      `Try using "${script.topic}" in one sentence today so it feels natural the next time you need it.`,
+    heading: (script) => `Practice "${script.topic}" today`,
+  },
+];
+
+const pickFallbackOutroTemplate = (
+  script: Script,
+): (typeof OUTRO_TEMPLATES)[number] => {
+  const hash = Array.from(script.topic).reduce(
+    (sum, character) => sum + character.charCodeAt(0),
+    0,
+  );
+  return OUTRO_TEMPLATES[hash % OUTRO_TEMPLATES.length];
+};
+
+const fallbackOutroNarration = (script: Script): string =>
+  pickFallbackOutroTemplate(script).narration(script);
+
+const fallbackOutroHeading = (script: Script): string =>
+  pickFallbackOutroTemplate(script).heading(script);
+
 const narrationFor = (script: Script, planIndex: number): string => {
   const plan = SCENE_PLAN[planIndex];
   if (plan.sectionIndex === "hook") {
     return script.hook;
   }
   if (plan.sectionIndex === "quote") {
-    return script.closing.split(/(?<=\.)\s+/)[0] ?? script.closing;
+    return closingSentences(script)[0] ?? script.closing;
   }
   if (plan.sectionIndex === "closing") {
-    const sentences = script.closing.split(/(?<=\.)\s+/);
-    return sentences.slice(1).join(" ") || script.closing;
+    const remainingClosing = closingSentences(script).slice(1).join(" ");
+    return remainingClosing || fallbackOutroNarration(script);
   }
 
   const section = script.sections[plan.sectionIndex];
@@ -50,11 +98,11 @@ const headingFor = (script: Script, planIndex: number): string => {
     return script.topic;
   }
   if (plan.sectionIndex === "quote") {
-    return script.closing.split(/(?<=\.)\s+/)[0] ?? script.closing;
+    return closingSentences(script)[0] ?? script.closing;
   }
   if (plan.sectionIndex === "closing") {
-    const sentences = script.closing.split(/(?<=\.)\s+/);
-    return sentences.slice(1).join(" ") || script.closing;
+    const remainingClosing = closingSentences(script).slice(1).join(" ");
+    return remainingClosing || fallbackOutroHeading(script);
   }
 
   return script.sections[plan.sectionIndex]?.heading ?? script.topic;

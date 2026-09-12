@@ -1,181 +1,54 @@
-# EnWordStudy
+# Remotion video
 
-AI-powered English word explainer video generator built with Remotion, React, and TypeScript.
+<p align="center">
+  <a href="https://github.com/remotion-dev/logo">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.apng">
+      <img alt="Animated Remotion Logo" src="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-light.gif">
+    </picture>
+  </a>
+</p>
 
-Chinese version: [README.zh-CN.md](./README.zh-CN.md)
+Welcome to your Remotion project!
 
-This project turns a word topic such as `lavish`, `presumptuous`, or `squander` into a vertical short-form study video with:
+## Commands
 
-- a generated script
-- a scene-based storyboard
-- voice-over
-- captions
-- background music
-- a final `1080x1920` rendered video
+**Install Dependencies**
 
-## Current Status
-
-The repository is no longer a default Remotion starter.
-
-It currently contains a working pipeline for vocabulary explainer videos:
-
-- portrait output: `1080x1920`
-- frame rate: `30fps`
-- default audience: English learners
-- vocabulary-first script mode for selected single-word topics
-- scene system: intro, content, diagram, list, quote, outro
-- subtitle overlay and music bed
-- multiple TTS provider fallbacks
-
-## Quick Start
-
-Install dependencies:
-
-```bash
-npm install
+```console
+npm i
 ```
 
-Copy environment variables:
+**Start Preview**
 
-```bash
-cp .env.example .env
-```
-
-Start Remotion Studio:
-
-```bash
+```console
 npm run dev
 ```
 
-Generate a full video from a word:
+**Render video**
 
-```bash
-npm run generate -- lavish --duration 60 --style vocabulary-cinematic --audience "English learners" --language en
+```console
+npx remotion render
 ```
 
-Render the current storyboard again without re-running the full pipeline:
+**Upgrade Remotion**
 
-```bash
-npx remotion render src/index.ts AIVideo output/final/lavish.mp4 --overwrite
+```console
+npx remotion upgrade
 ```
 
-Run checks:
+## Docs
 
-```bash
-npm run lint
-```
+Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
 
-## Pipeline
+## Help
 
-The main pipeline lives in `src/pipeline/generateVideo.ts` and runs these stages:
+We provide help on our [Discord server](https://discord.gg/6VzzNDwUwV).
 
-1. validate input
-2. generate script
-3. generate storyboard
-4. apply visual metadata
-5. generate voice-over
-6. generate background music
-7. generate captions
-8. render preview frames
-9. run QA checks
-10. render final video
+## Issues
 
-Generated artifacts are written to:
+Found an issue with Remotion? [File an issue here](https://github.com/remotion-dev/remotion/issues/new).
 
-- `data/input.json`
-- `data/script.json`
-- `data/storyboard.json`
-- `public/audio/voice`
-- `public/audio/music`
-- `output/previews`
-- `output/final`
+## License
 
-## Project Structure
-
-```text
-src/
-  agents/        Script, storyboard, voice, music, caption, QA
-  models/        Zod schemas and shared types
-  pipeline/      End-to-end generation entrypoint
-  remotion/      Video composition, scenes, animations, components
-  utils/         Asset paths, duration helpers, env helpers, JSON writers
-data/            Latest generated input, script, storyboard snapshots
-public/audio/    Generated voice and music assets
-output/          Preview frames and final rendered videos
-```
-
-## TTS Providers
-
-Voice generation falls back in this order:
-
-1. ElevenLabs
-2. OpenAI TTS
-3. local `index-tts`
-4. macOS `say`
-
-Useful environment variables are listed in `.env.example`:
-
-- `ELEVENLABS_API_KEY`
-- `ELEVENLABS_VOICE_ID`
-- `OPENAI_API_KEY`
-- `INDEX_TTS_ROOT`
-- `INDEX_TTS_VOICE`
-- `INDEX_TTS_DEVICE`
-
-If `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` are set, ElevenLabs is used first.
-
-## Supported Word Presets
-
-The local vocabulary mode currently has built-in presets for:
-
-- `lavish`
-- `presumptuous`
-- `squander`
-
-These presets live in `src/agents/scriptAgent.ts`.
-
-If you want to add another word with a hand-tuned script template, add a new entry to `VOCABULARY_PRESETS`.
-
-## Important Notes
-
-- The requested duration is a target, not a hard cap. Final duration may become longer when TTS audio is longer than expected.
-- The intro scene is configured so the first frame immediately shows the word instead of fading in from black.
-- Outro timing is trimmed to match the voice-over more closely instead of forcing a long static ending.
-- `.env` is ignored by Git, but `.env.example` is committed for reference.
-- Generated `mp4` and preview image files under `output/` are ignored by Git.
-
-## Example Commands
-
-Generate another word video:
-
-```bash
-npm run generate -- presumptuous --duration 60 --style vocabulary-cinematic --audience "English learners" --language en
-```
-
-Open the current composition in Remotion Studio:
-
-```bash
-npm run dev
-```
-
-Render the latest storyboard snapshot:
-
-```bash
-npx remotion render src/index.ts AIVideo output/final/latest.mp4 --overwrite
-```
-
-## Tech Stack
-
-- Remotion
-- React 19
-- TypeScript
-- Zod
-- ESLint
-- ffmpeg / ffprobe
-- ElevenLabs / OpenAI / index-tts / macOS say
-
-## Repository
-
-GitHub:
-
-- <https://github.com/KenFang0808/EnWordStudy>
+Note that for some entities a company license is needed. [Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md).

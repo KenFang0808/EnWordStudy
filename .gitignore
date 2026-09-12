@@ -6,15 +6,6 @@ dist
 # Ignore the output video from Git but not videos you import into src/.
 out
 output/**/*.mp4
-output/**/*.mp3
 output/**/*.png
 output/**/*.jpeg
 output/**/*.jpg
-
-# Generated pipeline artifacts
-data/input.json
-data/script.json
-data/storyboard.json
-public/audio/voiceover.mp3
-public/audio/music/*.mp3
-public/audio/voice/*.mp3
