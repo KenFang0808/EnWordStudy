@@ -1,0 +1,51 @@
+{
+  "topic": "quintessential",
+  "language": "en",
+  "audience": "English learners",
+  "targetDurationSeconds": 60,
+  "hook": "The word \"quintessential\" describes the most perfect, typical, or representative example of something.",
+  "sections": [
+    {
+      "id": "meaning",
+      "heading": "Understand the meaning",
+      "narration": "Quintessential is used when one person, object, style, or experience seems to capture the pure essence of a category. If something is the quintessential example, it feels like the standard people imagine first when they think of that idea.",
+      "points": [
+        "The perfect example",
+        "Represents the essence",
+        "Often strongly typical"
+      ]
+    },
+    {
+      "id": "usage",
+      "heading": "See how it is used",
+      "narration": "English speakers often use quintessential in writing, reviews, and thoughtful conversation. You may hear phrases like the quintessential summer drink, the quintessential English village, or the quintessential New York experience when something feels especially classic and recognizable.",
+      "points": [
+        "Quintessential style or place",
+        "Often used in description",
+        "Common in polished writing"
+      ]
+    },
+    {
+      "id": "examples",
+      "heading": "Learn through examples",
+      "narration": "For example, people might say, She is the quintessential professional, always calm and prepared. Another example is, That small cafe is the quintessential Paris experience. You can also say, The film captures the quintessential spirit of the era.",
+      "points": [
+        "The quintessential professional",
+        "A quintessential Paris experience",
+        "The quintessential spirit of an era"
+      ]
+    },
+    {
+      "id": "contrast",
+      "heading": "Avoid common confusion",
+      "narration": "Quintessential is different from ordinary or merely common. Something common may appear often, but something quintessential feels like the ideal or most defining example. It is close to classic or archetypal, but quintessential often sounds more polished and emphatic.",
+      "points": [
+        "Stronger than common",
+        "Close to archetypal",
+        "Suggests an ideal example"
+      ]
+    }
+  ],
+  "closing": "Remember quintessential as a word for the clearest and most perfect example. If one thing captures the true essence of an idea, it may be quintessential.",
+  "wordCount": 192
+}
