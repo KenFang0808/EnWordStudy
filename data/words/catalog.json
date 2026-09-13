@@ -502,5 +502,61 @@
       }
     ],
     "closing": "To remember \"ubiquitous,\" picture one single thing appearing everywhere you turn. If something shows up on every street, every screen, and in every conversation, it is ubiquitous."
+  },
+  {
+    "word": "interrogate",
+    "pronunciation": "/ɪnˈterəɡeɪt/",
+    "partOfSpeech": "verb",
+    "definition": "to ask someone a lot of questions, often in a formal, forceful, or official way",
+    "memoryHook": "Picture a long, focused line of questions that will not stop.",
+    "examples": [
+      "The police interrogated the suspect for several hours.",
+      "Journalists interrogated the official about the delay.",
+      "She interrogated the data to find the missing pattern."
+    ],
+    "hook": "The word \"interrogate\" describes asking someone many questions, often in a formal, intense, or official way.",
+    "sections": [
+      {
+        "id": "meaning",
+        "heading": "Understand the meaning",
+        "narration": "\"Interrogate\" means to question someone thoroughly, usually with a clear purpose. It can feel more serious than a casual chat, because the speaker wants answers, evidence, or the truth. In some contexts, it can also mean examining information closely.",
+        "points": [
+          "Ask many focused questions",
+          "Often official or intense",
+          "Can also mean examining data"
+        ]
+      },
+      {
+        "id": "usage",
+        "heading": "Know how people use it",
+        "narration": "English speakers use \"interrogate\" for police interviews, news conferences, and strong questioning at work. You can interrogate a suspect, interrogate a witness, or interrogate a set of results. The noun form is interrogation, and the person who does it is an interrogator.",
+        "points": [
+          "Interrogate a suspect or witness",
+          "Interrogate data or results",
+          "Related noun: interrogation"
+        ]
+      },
+      {
+        "id": "examples",
+        "heading": "Learn it through examples",
+        "narration": "For example, \"The police interrogated the suspect for several hours.\" Another example is, \"Journalists interrogated the official about the delay.\" You can also say, \"She interrogated the data to find the missing pattern.\"",
+        "points": [
+          "The police interrogated the suspect.",
+          "Journalists interrogated the official.",
+          "She interrogated the data."
+        ]
+      },
+      {
+        "id": "contrast",
+        "heading": "Avoid common confusion",
+        "narration": "\"Interrogate\" is stronger than ask or question, because it suggests persistence and pressure. It is also different from interview, which can be polite or professional, while interrogate often sounds more forceful. Use it carefully in everyday talk, because it can feel dramatic or even hostile.",
+        "points": [
+          "Stronger than ask or question",
+          "More forceful than interview",
+          "Can sound dramatic in casual talk"
+        ]
+      }
+    ],
+    "closing": "To remember \"interrogate,\" think of a long, focused line of questions that will not stop. If someone is being questioned thoroughly, officially, or very intensely, they are being interrogated."
   }
 ]
