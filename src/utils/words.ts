@@ -9,3 +9,10 @@ export const targetWordCount = (durationSeconds: number): { min: number; max: nu
     max: Math.round((durationSeconds * 160) / 60),
   };
 };
+
+export const estimateSpeakingDuration = (
+  wordCount: number,
+  wordsPerMinute = 145,
+): number => {
+  return (wordCount / wordsPerMinute) * 60;
+};

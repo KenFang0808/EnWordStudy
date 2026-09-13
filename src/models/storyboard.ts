@@ -28,6 +28,8 @@ export const onScreenTextSchema = z.object({
   title: z.string().min(1),
   subtitle: z.string().optional(),
   body: z.string().optional(),
+  pronunciation: z.string().optional(),
+  partOfSpeech: z.string().optional(),
 });
 
 export const visualItemSchema = z.object({
@@ -48,13 +50,12 @@ export const visualEdgeSchema = z.object({
 
 export const visualSpecSchema = z.object({
   accentColor: z.string().optional(),
+  highlightTerm: z.string().optional(),
   items: z.array(visualItemSchema).optional(),
   nodes: z.array(visualNodeSchema).optional(),
   edges: z.array(visualEdgeSchema).optional(),
   quote: z.string().optional(),
   attribution: z.string().optional(),
-  imagePrompt: z.string().optional(),
-  imageFile: z.string().nullable().optional(),
 });
 
 export const captionCueSchema = z.object({

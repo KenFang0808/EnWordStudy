@@ -13,7 +13,8 @@
 
 当前仓库已经针对“单词学习视频”做了一些定制，包括：
 
-- 单词词库预设
+- `data/words/catalog.json` 外置单词词库
+- 音标、词性、释义、搭配、例句、易混词和记忆钩子
 - 本地 `index-tts` 音色接入
 - ElevenLabs / Fish Audio / OpenAI / `index-tts` 的 TTS 回退链路
 - `quote / outro` 收尾逻辑修复
@@ -41,13 +42,15 @@
 1. 读取输入参数或 `data/input.json`
 2. 生成脚本 `data/script.json`
 3. 生成分镜 `data/storyboard.json`
-4. 应用视觉样式
+4. 应用纯图形视觉样式
 5. 生成配音
 6. 生成背景音乐
-7. 生成字幕
+7. 生成句级字幕并高亮目标词
 8. 渲染 QA 预览帧
-9. 执行 QA 检查
+9. 执行单词教学内容 QA
 10. 渲染最终视频到 `output/final`
+
+项目只接受一个英文单词作为 `topic`，不会再退化为通用演讲或主题讲解模板。
 
 ## 3. 项目结构
 
@@ -58,7 +61,6 @@
 - `data/storyboard.json`：分镜数据
 - `public/audio/voice/`：各场景配音
 - `public/audio/music/`：背景音乐
-- `public/images/generated/`：自动生成图片
 - `output/previews/`：预览帧和中间预览产物
 - `output/final/`：最终 MP4 成片
 
@@ -74,28 +76,15 @@
 
 脚本生成入口在 [scriptAgent.ts](file:///Users/bytedance/ai-video/src/agents/scriptAgent.ts)。
 
-当前逻辑分为三层：
+当前逻辑只服务单词讲解：
 
-1. 如果设置了 `OPENAI_API_KEY`
-   - 优先走 OpenAI 生成脚本
-2. 如果没有 OpenAI
-   - 优先尝试本地单词预设 `VOCABULARY_PRESETS`
-3. 如果既不是预设词，也不是特殊主题
-   - 回退到本地通用脚本模板
+1. 优先读取 `data/words/catalog.json` 中的结构化词条
+2. 本地没有词条且配置了 `OPENAI_API_KEY` 时，调用单词专用提示词生成
+3. 两者都不可用时立即报错，不会回退到通用主题或演讲脚本
 
-当前本地脚本提供器包含：
+每个词条包含两部分：一是音标、词性、释义、记忆钩子、三个完整例句这类元信息，二是人工撰写的讲解文案，即开场句、四个小节（`meaning` / `usage` / `examples` / `contrast`，各自带标题、旁白和三个要点）和收尾句。
 
-- `VOCABULARY_PRESETS`
-  - 适合固定质量、固定结构的单词讲解视频
-- `buildPublicSpeakingScript()`
-  - 适合 `public speaking / presentation / speech / communication`
-- `buildGenericScript()`
-  - 通用主题脚本模板
-
-注意：
-
-- 想要稳定、高质量的“单词讲解风格”，最适合加入 `VOCABULARY_PRESETS`
-- 如果不在预设词库里，也可以临时通过一次性脚本方式生成，但那不属于主逻辑的一部分
+`scriptAgent` 直接使用词条里的文案原文，不会把元信息拼接成句子，以保证口播自然。脚本长度只校验目标时长对应的下限，避免手写的好文案被长度上限拒绝。
 
 ## 5. 分镜与收尾逻辑
 
@@ -105,25 +94,17 @@
 
 - `intro`
 - `definition`
-- `loop`
-- `traits`
-- `audience`
-- `quote`
+- `usage`
+- `examples`
+- `contrast`
+- `memory`
 - `outro`
 
-最近已修复的问题：
+`memory` 专门展示记忆钩子，`outro` 专门引导朗读和造句，两者职责分离。
 
-- 当 `closing` 只有一句时，过去 `quote` 和 `outro` 会重复
-- 现在规则变为：
-  - `quote` 使用 `closing` 第一句
-  - `outro` 如果还有剩余句子，则使用剩余句子
-  - 如果没有剩余句子，则使用多模板轮换的兜底 `outro`
+分镜阶段根据文案词数和约 145 词/分钟的语速预估时长，真正的时长由语音决定：`voiceAgent` 拿到每镜音频后，把场景时长设为音频时长加短暂停顿。成片允许在 60–120 秒之间自然浮动；不足 60 秒时会给各镜头均匀增加呼吸空间，超过 120 秒则明确报错并要求缩短文案或提高语速。`--duration` 只用于指导 AI 生成新词条，不会把已有手写文案强裁成固定秒数。
 
-这意味着：
-
-- 不会再出现结尾两段一模一样的问题
-- 不同单词的收尾会更自然
-- 同一个单词重复生成时，兜底模板仍然保持稳定可复现
+结尾两镜直接使用词条 `closing` 的原文：第一句作为记忆镜头，后续句子作为结尾镜头，不再生成 `Use "word" today` 之类的兜底标题。只有一段主文字的记忆和结尾镜头会居中显示，并省略重复字幕。
 
 ## 6. 语音生成逻辑
 
@@ -211,13 +192,13 @@ npm run lint
 ### 通过主管线生成视频
 
 ```bash
-npm run generate -- <topic> --duration 60 --language en --style vocabulary-cinematic --audience "English learners"
+npm run generate -- <topic> --duration 90 --language en --style vocabulary-cinematic --audience "English learners"
 ```
 
 示例：
 
 ```bash
-npm run generate -- accolade --duration 60 --language en --style vocabulary-cinematic --audience "English learners"
+npm run generate -- accolade --duration 90 --language en --style vocabulary-cinematic --audience "English learners"
 ```
 
 ### 使用 `data/input.json` 直接生成
@@ -227,6 +208,16 @@ npm run generate -- accolade --duration 60 --language en --style vocabulary-cine
 ```bash
 npm run generate
 ```
+
+### 从词表批量生成
+
+把英文单词逐行写入 `data/words.txt`，然后执行：
+
+```bash
+npm run generate:batch -- --file data/words.txt --duration 90
+```
+
+单个单词失败时会记录错误并继续生成后续单词。
 
 ## 9. 当前默认输入与限制
 
@@ -239,7 +230,7 @@ npm run generate
 - `duration`：
   - 最短 `60`
   - 默认 `90`
-  - 最长 `180`
+  - 最长 `120`
 - `style`：默认 `modern-tech`
 - `audience`：默认 `General`
 
@@ -247,7 +238,7 @@ npm run generate
 
 - `topic`: 单词
 - `language`: `en`
-- `duration`: `60`
+- `duration`: `90`
 - `style`: `vocabulary-cinematic`
 - `audience`: `English learners`
 
@@ -285,9 +276,9 @@ QA 逻辑位于 [qaAgent.ts](file:///Users/bytedance/ai-video/src/agents/qaAgent
 
 ## 12. 常见问题
 
-### 1. 为什么有些新单词需要改 `scriptAgent.ts`？
+### 1. 如何添加新单词？
 
-因为高质量、固定结构的单词视频目前主要来自 `VOCABULARY_PRESETS`。如果一个新词不在预设里，主逻辑通常会回退到通用脚本。
+在 `data/words/catalog.json` 添加一个结构化词条即可，不需要修改 TypeScript。若配置了 `OPENAI_API_KEY`，未收录单词也可以由单词专用生成器创建脚本。
 
 ### 2. 为什么不同音色下时长差很多？
 
@@ -295,7 +286,8 @@ QA 逻辑位于 [qaAgent.ts](file:///Users/bytedance/ai-video/src/agents/qaAgent
 
 - `INDEX_TTS_DURATION_FACTOR` 会直接影响节奏
 - 不同音色本身说话速度也不同
-- 各场景最终时长会根据真实音频长度重新拉长
+- 各场景最终时长会根据真实音频长度确定
+- 成片可以在 60–120 秒之间自然浮动，不再强制压到 60 秒
 
 ### 3. 为什么有时后台命令不怎么刷日志？
 
@@ -306,15 +298,13 @@ QA 逻辑位于 [qaAgent.ts](file:///Users/bytedance/ai-video/src/agents/qaAgent
 如果你要长期继续维护这个项目，推荐按下面的习惯使用：
 
 1. 先确定音色和语速
-2. 优先把高频单词加入 `VOCABULARY_PRESETS`
+2. 优先把高频单词加入 `data/words/catalog.json`
 3. 用 `npm run generate -- ...` 走标准主管线
 4. 只在快速试词时使用一次性脚本方式
 5. 提交代码时，尽量把“逻辑修改”和“生成产物”分开提交
 
 ## 14. 后续可继续优化的方向
 
-- 把词汇预设从 `scriptAgent.ts` 中拆到独立词库文件
-- 给 QA 增加 narration 重复检测
-- 给视频生成加批量任务入口
 - 优化后台生成日志可见性
-- 为不同视频风格提供不同的脚本模板和收尾模板
+- 接入强制对齐服务，获得单词级字幕时间戳
+- 增加人工审核后的词条发布流程

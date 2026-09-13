@@ -70,7 +70,9 @@ export const AIVideo: React.FC<AIVideoProps> = ({ showCaptions }) => {
         })}
       </TransitionSeries>
       <ProgressBar />
-      {showCaptions ? <Caption cues={storyboard.captions} /> : null}
+      {showCaptions ? (
+        <Caption cues={storyboard.captions} highlightTerm={storyboard.topic} />
+      ) : null}
     </AbsoluteFill>
   );
 };

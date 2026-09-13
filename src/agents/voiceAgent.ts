@@ -7,9 +7,9 @@ import { VIDEO_DEFAULTS } from "../models/video.ts";
 import { PATHS } from "../utils/assets.ts";
 import { getLocalAudioDurationSeconds, requireCommand } from "../utils/audio.ts";
 import { getEnv } from "../utils/env.ts";
-import { getStoryboardDurationInSeconds } from "../utils/duration.ts";
 
 const TAIL_SECONDS = 0.3;
+const MIN_SCENE_SECONDS = 3;
 const DEFAULT_SAY_VOICE = "Samantha";
 const DEFAULT_SAY_RATE = "170";
 const INDEX_TTS_DEFAULT_ROOT = "/Users/bytedance/index-tts";
@@ -367,15 +367,14 @@ export const generateVoice = async (
       storyboard.language,
     );
     const audioDurationSeconds = getLocalAudioDurationSeconds(absoluteFile);
-    const targetDurationSeconds = audioDurationSeconds + TAIL_SECONDS;
     scenes.push({
       ...scene,
       voiceoverFile: relativeFile,
       audioDurationSeconds,
-      durationInSeconds:
-        scene.type === "outro"
-          ? targetDurationSeconds
-          : Math.max(scene.durationInSeconds, targetDurationSeconds),
+      durationInSeconds: Math.max(
+        MIN_SCENE_SECONDS,
+        audioDurationSeconds + TAIL_SECONDS,
+      ),
     });
     console.log(
       `Voice Agent: finished ${scene.id} (${audioDurationSeconds.toFixed(2)}s)`,
@@ -384,18 +383,45 @@ export const generateVoice = async (
 
   console.log(`Voice Agent: using ${provider}`);
 
+  const transitionSeconds = storyboard.scenes.reduce(
+    (sum, scene, index) =>
+      sum +
+      (index === storyboard.scenes.length - 1
+        ? 0
+        : scene.transition.durationInSeconds),
+    0,
+  );
+  const naturalDuration =
+    scenes.reduce((sum, scene) => sum + scene.durationInSeconds, 0) -
+    transitionSeconds;
+  if (naturalDuration > VIDEO_DEFAULTS.maxDurationSeconds) {
+    throw new Error(
+      `Voice Agent: narration is ${naturalDuration.toFixed(1)}s, exceeding the ${VIDEO_DEFAULTS.maxDurationSeconds}s limit. Shorten the script or increase the speaking rate.`,
+    );
+  }
+
+  const paddingPerScene =
+    naturalDuration < VIDEO_DEFAULTS.minDurationSeconds
+      ? (VIDEO_DEFAULTS.minDurationSeconds - naturalDuration) / scenes.length
+      : 0;
+  const timedScenes =
+    paddingPerScene > 0
+      ? scenes.map((scene) => ({
+          ...scene,
+          durationInSeconds: scene.durationInSeconds + paddingPerScene,
+        }))
+      : scenes;
+  if (paddingPerScene > 0) {
+    console.log(
+      `Voice Agent: added ${paddingPerScene.toFixed(2)}s of breathing room per scene to reach ${VIDEO_DEFAULTS.minDurationSeconds}s`,
+    );
+  }
+
   const withVoice = {
     ...storyboard,
     voiceoverFile: null,
-    scenes,
+    scenes: timedScenes,
   };
-
-  const last = withVoice.scenes[withVoice.scenes.length - 1];
-  const composed = getStoryboardDurationInSeconds(withVoice);
-  if (last && composed < VIDEO_DEFAULTS.minDurationSeconds) {
-    last.durationInSeconds +=
-      VIDEO_DEFAULTS.minDurationSeconds - composed + 1;
-  }
 
   return withVoice;
 };

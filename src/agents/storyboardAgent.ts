@@ -12,76 +12,42 @@ import { countWords } from "../utils/words.ts";
 const SCENE_PLAN: Array<{
   id: string;
   type: SceneType;
-  sectionIndex: number | "hook" | "closing" | "quote";
+  sectionIndex: number | "hook" | "memory" | "practice";
 }> = [
   { id: "intro", type: "intro", sectionIndex: "hook" },
   { id: "definition", type: "content", sectionIndex: 0 },
-  { id: "loop", type: "diagram", sectionIndex: 1 },
-  { id: "traits", type: "list", sectionIndex: 2 },
-  { id: "audience", type: "content", sectionIndex: 3 },
-  { id: "quote", type: "quote", sectionIndex: "quote" },
-  { id: "outro", type: "outro", sectionIndex: "closing" },
+  { id: "usage", type: "diagram", sectionIndex: 1 },
+  { id: "examples", type: "list", sectionIndex: 2 },
+  { id: "contrast", type: "content", sectionIndex: 3 },
+  { id: "memory", type: "quote", sectionIndex: "memory" },
+  { id: "outro", type: "outro", sectionIndex: "practice" },
 ];
 
 const closingSentences = (script: Script): string[] =>
-  script.closing
-    .split(/(?<=\.)\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  script.closing.split(/(?<=[.!?])\s+/).filter(Boolean);
 
-const OUTRO_TEMPLATES: Array<{
-  narration: (script: Script) => string;
-  heading: (script: Script) => string;
-}> = [
-  {
-    narration: (script) =>
-      `Now you know how to recognize and use "${script.topic}" more naturally.`,
-    heading: (script) => `Use "${script.topic}" naturally`,
-  },
-  {
-    narration: (script) =>
-      `Keep "${script.topic}" in mind the next time you want a more precise, vivid way to describe this idea.`,
-    heading: (script) => `Remember "${script.topic}"`,
-  },
-  {
-    narration: (script) =>
-      `The next time you hear or read "${script.topic}", you will be able to catch its meaning much faster.`,
-    heading: (script) => `Spot "${script.topic}" faster`,
-  },
-  {
-    narration: (script) =>
-      `Try using "${script.topic}" in one sentence today so it feels natural the next time you need it.`,
-    heading: (script) => `Practice "${script.topic}" today`,
-  },
-];
-
-const pickFallbackOutroTemplate = (
+const closingFor = (
   script: Script,
-): (typeof OUTRO_TEMPLATES)[number] => {
-  const hash = Array.from(script.topic).reduce(
-    (sum, character) => sum + character.charCodeAt(0),
-    0,
-  );
-  return OUTRO_TEMPLATES[hash % OUTRO_TEMPLATES.length];
+  part: "memory" | "outro",
+): string => {
+  const sentences = closingSentences(script);
+  if (part === "memory") {
+    return sentences[0] ?? script.closing;
+  }
+
+  return sentences.slice(1).join(" ") || script.closing;
 };
-
-const fallbackOutroNarration = (script: Script): string =>
-  pickFallbackOutroTemplate(script).narration(script);
-
-const fallbackOutroHeading = (script: Script): string =>
-  pickFallbackOutroTemplate(script).heading(script);
 
 const narrationFor = (script: Script, planIndex: number): string => {
   const plan = SCENE_PLAN[planIndex];
   if (plan.sectionIndex === "hook") {
     return script.hook;
   }
-  if (plan.sectionIndex === "quote") {
-    return closingSentences(script)[0] ?? script.closing;
+  if (plan.sectionIndex === "memory") {
+    return closingFor(script, "memory");
   }
-  if (plan.sectionIndex === "closing") {
-    const remainingClosing = closingSentences(script).slice(1).join(" ");
-    return remainingClosing || fallbackOutroNarration(script);
+  if (plan.sectionIndex === "practice") {
+    return closingFor(script, "outro");
   }
 
   const section = script.sections[plan.sectionIndex];
@@ -97,23 +63,22 @@ const headingFor = (script: Script, planIndex: number): string => {
   if (plan.sectionIndex === "hook") {
     return script.topic;
   }
-  if (plan.sectionIndex === "quote") {
-    return closingSentences(script)[0] ?? script.closing;
+  if (plan.sectionIndex === "memory") {
+    return closingFor(script, "memory");
   }
-  if (plan.sectionIndex === "closing") {
-    const remainingClosing = closingSentences(script).slice(1).join(" ");
-    return remainingClosing || fallbackOutroHeading(script);
+  if (plan.sectionIndex === "practice") {
+    return closingFor(script, "outro");
   }
 
   return script.sections[plan.sectionIndex]?.heading ?? script.topic;
 };
 
 const getMinimumSceneDuration = (type: SceneType): number => {
-  if (type === "outro") {
-    return 1;
+  if (type === "outro" || type === "quote") {
+    return 3;
   }
 
-  return 6;
+  return type === "list" ? 7 : 5;
 };
 
 export const generateStoryboard = (
@@ -128,11 +93,16 @@ export const generateStoryboard = (
     Math.max(8, countWords(narrationFor(script, index))),
   );
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const transitionSeconds = SCENE_PLAN.slice(0, -1).length * 0.4;
+  const targetSceneSeconds =
+    script.targetDurationSeconds + transitionSeconds;
 
   const scenes: Scene[] = SCENE_PLAN.map((plan, index) => {
     const durationInSeconds = Math.max(
       getMinimumSceneDuration(plan.type),
-      Math.round((weights[index] / totalWeight) * request.duration),
+      Number(
+        ((weights[index] / totalWeight) * targetSceneSeconds).toFixed(2),
+      ),
     );
     const section =
       typeof plan.sectionIndex === "number"
@@ -147,19 +117,26 @@ export const generateStoryboard = (
       onScreenText: {
         eyebrow:
           plan.type === "intro"
-            ? `FOR ${request.audience.toUpperCase()}`
+            ? "WORD OF THE DAY"
             : plan.type === "quote" || plan.type === "outro"
               ? undefined
-              : section?.heading.toUpperCase(),
+              : script.topic.toUpperCase(),
         title: headingFor(script, index),
         subtitle:
           plan.type === "intro"
-            ? script.hook.split(/(?<=\.)\s+/)[1]
-            : plan.type === "quote" || plan.type === "outro"
+            ? script.vocabulary.definition
+            : plan.type === "quote" ||
+                plan.type === "outro" ||
+                plan.type === "list"
               ? undefined
-            : section?.points?.[0],
+              : section?.points?.[0],
+        pronunciation:
+          plan.type === "intro" ? script.vocabulary.pronunciation : undefined,
+        partOfSpeech:
+          plan.type === "intro" ? script.vocabulary.partOfSpeech : undefined,
       },
       visual: {
+        highlightTerm: script.topic,
         items: section?.points?.map((point) => ({ title: point })),
       },
       animation: {
