@@ -7,7 +7,6 @@ export const PIPELINE_STAGES = [
   "script",
   "storyboard",
   "visual",
-  "image",
   "voice",
   "music",
   "captions",

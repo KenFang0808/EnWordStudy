@@ -2,7 +2,13 @@ import { z } from "zod";
 import { VIDEO_DEFAULTS } from "./video.ts";
 
 export const videoRequestSchema = z.object({
-  topic: z.string().min(1, "A topic is required."),
+  topic: z
+    .string()
+    .trim()
+    .regex(
+      /^[a-zA-Z-]+$/,
+      "Topic must be one English vocabulary word (letters and hyphens only).",
+    ),
   language: z.string().min(1).default(VIDEO_DEFAULTS.language),
   duration: z
     .number()

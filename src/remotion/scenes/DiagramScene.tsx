@@ -7,6 +7,7 @@ export const DiagramScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
   const { width, height } = useVideoConfig();
   const isPortrait = height > width;
   const nodes = scene.visual.nodes ?? [];
+  const isUsageScene = scene.id === "usage";
 
   return (
     <SceneShell scene={scene}>
@@ -92,7 +93,8 @@ export const DiagramScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                   </div>
                 ) : null}
               </div>
-              {index < Math.min(nodes.length, 4) - 1 ? (
+              {!isUsageScene &&
+              index < Math.min(nodes.length, 4) - 1 ? (
                 <div
                   style={{
                     fontSize: isPortrait ? 52 : 60,

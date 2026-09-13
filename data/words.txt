@@ -1,0 +1,4 @@
+# One English word per line.
+lavish
+equanimity
+capricious

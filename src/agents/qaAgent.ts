@@ -1,9 +1,16 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { storyboardSchema, type Storyboard } from "../models/storyboard.ts";
+import { VOCABULARY_SECTION_IDS } from "../models/vocabulary.ts";
 import type { PipelineState } from "../pipeline/pipelineState.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
 import { getStoryboardDurationInSeconds } from "../utils/duration.ts";
+
+const normalizeText = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 const formatIssues = (
   issues: Array<{ path: PropertyKey[]; message: string }>,
@@ -44,6 +51,11 @@ export const validateStoryboard = (storyboard: Storyboard): void => {
       `QA: duration is ${duration.toFixed(2)}s, need at least ${VIDEO_DEFAULTS.minDurationSeconds}s.`,
     );
   }
+  if (duration > VIDEO_DEFAULTS.maxDurationSeconds) {
+    throw new Error(
+      `QA: duration is ${duration.toFixed(2)}s, need at most ${VIDEO_DEFAULTS.maxDurationSeconds}s.`,
+    );
+  }
 
   for (const scene of parsed.data.scenes) {
     if (scene.durationInSeconds <= 0) {
@@ -56,6 +68,14 @@ export const validateStoryboard = (storyboard: Storyboard): void => {
       throw new Error(`QA: scene "${scene.id}" is missing a voice-over file.`);
     }
     assertFile(scene.voiceoverFile, `Voice-over for ${scene.id}`);
+    if (
+      scene.audioDurationSeconds !== undefined &&
+      scene.durationInSeconds - scene.audioDurationSeconds > 6
+    ) {
+      throw new Error(
+        `QA: scene "${scene.id}" has more than 6 seconds of trailing visual hold.`,
+      );
+    }
   }
 
   if (!parsed.data.musicFile) {
@@ -74,6 +94,54 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   }
 
   validateStoryboard(state.storyboard);
+
+  if (!state.script) {
+    throw new Error("QA: vocabulary script is missing from pipeline state.");
+  }
+  const word = state.script.vocabulary.word.toLowerCase();
+  if (!/^[a-z-]+$/.test(word)) {
+    throw new Error("QA: the requested topic is not one English word.");
+  }
+  const sectionIds = new Set(state.script.sections.map((section) => section.id));
+  for (const sectionId of VOCABULARY_SECTION_IDS) {
+    if (!sectionIds.has(sectionId)) {
+      throw new Error(`QA: script is missing the "${sectionId}" lesson section.`);
+    }
+  }
+  if (state.script.vocabulary.examples.length < 3) {
+    throw new Error("QA: vocabulary lesson needs at least three examples.");
+  }
+  const combinedNarration = state.storyboard.scenes
+    .map((scene) => scene.narration)
+    .join(" ")
+    .toLowerCase();
+  if (!combinedNarration.includes(word)) {
+    throw new Error(`QA: narration never mentions the target word "${word}".`);
+  }
+  const forbiddenGenericCopy = [
+    "public speaking",
+    "one clear message",
+    "two or three supporting points",
+  ];
+  const genericCopy = forbiddenGenericCopy.find((phrase) =>
+    combinedNarration.includes(phrase),
+  );
+  if (genericCopy) {
+    throw new Error(`QA: generic explainer copy leaked into the lesson: "${genericCopy}".`);
+  }
+  const normalizedNarrations = state.storyboard.scenes.map((scene) =>
+    normalizeText(scene.narration),
+  );
+  if (new Set(normalizedNarrations).size !== normalizedNarrations.length) {
+    throw new Error("QA: two scenes contain duplicate narration.");
+  }
+  if (
+    !state.storyboard.captions.some((cue) =>
+      cue.text.toLowerCase().includes(word),
+    )
+  ) {
+    throw new Error(`QA: captions never show the target word "${word}".`);
+  }
 
   if (state.previewFrames.length === 0) {
     throw new Error("QA: preview frames were not rendered.");

@@ -6,7 +6,7 @@ export const VIDEO_DEFAULTS = {
   fps: 30,
   minDurationSeconds: 60,
   defaultDurationSeconds: 90,
-  maxDurationSeconds: 180,
+  maxDurationSeconds: 120,
   language: "en",
   style: "modern-tech",
   voiceVolume: 1,

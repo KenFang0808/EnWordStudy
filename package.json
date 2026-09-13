@@ -32,7 +32,8 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "generate": "node --experimental-strip-types --experimental-default-type=module src/pipeline/generateVideo.ts"
+    "generate": "node --experimental-strip-types --experimental-default-type=module src/pipeline/generateVideo.ts",
+    "generate:batch": "node --experimental-strip-types --experimental-default-type=module src/pipeline/generateBatch.ts"
   },
   "sideEffects": [
     "*.css"

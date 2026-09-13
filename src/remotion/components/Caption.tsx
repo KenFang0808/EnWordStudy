@@ -6,10 +6,12 @@ import {
 } from "remotion";
 import type { CaptionCue } from "../../models/storyboard";
 import { fontFamily } from "../font";
+import { HighlightedText } from "./HighlightedText";
 
 export const Caption: React.FC<{
   readonly cues: CaptionCue[];
-}> = ({ cues }) => {
+  readonly highlightTerm: string;
+}> = ({ cues, highlightTerm }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const isPortrait = height > width;
@@ -45,7 +47,7 @@ export const Caption: React.FC<{
           textShadow: "0 2px 16px rgba(0, 0, 0, 0.45)",
         }}
       >
-        {cue.text}
+        <HighlightedText text={cue.text} term={highlightTerm} />
       </Interactive.Div>
     </AbsoluteFill>
   );

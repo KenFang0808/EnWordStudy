@@ -16,6 +16,7 @@ declare module "node:fs" {
 declare module "node:path" {
   export function join(...parts: string[]): string;
   export function dirname(path: string): string;
+  export function resolve(...parts: string[]): string;
 }
 
 declare module "node:os" {
@@ -36,7 +37,9 @@ declare module "node:child_process" {
 
 declare const process: {
   argv: string[];
+  execPath: string;
   cwd: () => string;
   env: Record<string, string | undefined>;
+  exitCode?: number;
   exit: (code: number) => never;
 };

@@ -92,27 +92,54 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                   {scene.onScreenText.title}
                 </Interactive.Div>
               </div>
+              {scene.onScreenText.pronunciation ||
+              scene.onScreenText.partOfSpeech ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  {scene.onScreenText.pronunciation ? (
+                    <Interactive.Div
+                      name="Pronunciation"
+                      style={{
+                        fontFamily,
+                        fontSize: isPortrait ? 42 : 48,
+                        fontWeight: 700,
+                        color: "#F8FAFC",
+                      }}
+                    >
+                      {scene.onScreenText.pronunciation}
+                    </Interactive.Div>
+                  ) : null}
+                  {scene.onScreenText.partOfSpeech ? (
+                    <Interactive.Div
+                      name="Part of speech"
+                      style={{
+                        fontFamily,
+                        fontSize: isPortrait ? 28 : 32,
+                        fontWeight: 700,
+                        color: accent,
+                        padding: "10px 18px",
+                        borderRadius: 999,
+                        border: `2px solid ${accent}88`,
+                        backgroundColor: `${accent}18`,
+                      }}
+                    >
+                      {scene.onScreenText.partOfSpeech}
+                    </Interactive.Div>
+                  ) : null}
+                </div>
+              ) : null}
               {scene.onScreenText.subtitle ? (
                 <div style={{ marginTop: 18 }}>
                   <Subtitle text={scene.onScreenText.subtitle} name="Intro subtitle" />
                 </div>
               ) : null}
-              <Interactive.Div
-                name="Intro narration summary"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 50 : 58,
-                  fontWeight: 700,
-                  color: "#CBD5E1",
-                  lineHeight: 1.3,
-                  marginTop: 22,
-                  maxWidth: isPortrait ? 860 : 900,
-                  textAlign: "center",
-                  textShadow: "0 8px 20px rgba(8, 15, 32, 0.2)",
-                }}
-              >
-                {scene.narration}
-              </Interactive.Div>
             </div>
           ) : (
             <>

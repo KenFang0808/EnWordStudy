@@ -1,6 +1,7 @@
 import { Interactive, useVideoConfig } from "remotion";
 import type { StoryboardSceneProps } from "../../models/storyboard";
 import { Card } from "../components/Card";
+import { HighlightedText } from "../components/HighlightedText";
 import { SceneShell } from "../components/SceneShell";
 import { Subtitle } from "../components/Subtitle";
 import { Title } from "../components/Title";
@@ -40,7 +41,11 @@ export const ContentScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
             maxWidth: isPortrait ? 780 : 900,
           }}
         >
-          {scene.narration}
+          <HighlightedText
+            text={scene.onScreenText.body ?? scene.narration}
+            term={scene.visual.highlightTerm ?? ""}
+            accentColor={scene.visual.accentColor}
+          />
         </Interactive.Div>
         {items.length > 0 ? (
           <div

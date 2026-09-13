@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { vocabularyProfileSchema } from "./vocabulary.ts";
 
 export const scriptSectionSchema = z.object({
   id: z.string().min(1),
@@ -12,6 +13,7 @@ export const scriptSchema = z.object({
   language: z.string().min(1),
   audience: z.string().min(1),
   targetDurationSeconds: z.number().positive(),
+  vocabulary: vocabularyProfileSchema,
   hook: z.string().min(1),
   sections: z.array(scriptSectionSchema).min(1),
   closing: z.string().min(1),
