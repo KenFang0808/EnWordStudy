@@ -9,3 +9,7 @@ output/**/*.mp4
 output/**/*.png
 output/**/*.jpeg
 output/**/*.jpg
+
+# Local pipeline inputs, catalogs, and generated media.
+/data/
+/public/
