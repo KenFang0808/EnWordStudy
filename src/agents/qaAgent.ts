@@ -4,6 +4,7 @@ import { storyboardSchema, type Storyboard } from "../models/storyboard.ts";
 import { VOCABULARY_SECTION_IDS } from "../models/vocabulary.ts";
 import type { PipelineState } from "../pipeline/pipelineState.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
+import { findRepetitiveCopyIssues } from "../utils/copyQuality.ts";
 import { getStoryboardDurationInSeconds } from "../utils/duration.ts";
 
 const normalizeText = (value: string): string =>
@@ -134,6 +135,10 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   );
   if (new Set(normalizedNarrations).size !== normalizedNarrations.length) {
     throw new Error("QA: two scenes contain duplicate narration.");
+  }
+  const repetitiveCopy = findRepetitiveCopyIssues(state.script);
+  if (repetitiveCopy.length > 0) {
+    throw new Error(`QA: ${repetitiveCopy.join(" ")}`);
   }
   if (
     !state.storyboard.captions.some((cue) =>
