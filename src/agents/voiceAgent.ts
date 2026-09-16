@@ -345,7 +345,7 @@ const synthesizeScene = async (
 
 export const generateVoice = async (
   storyboard: Storyboard,
-): Promise<Storyboard> => {
+): Promise<{ storyboard: Storyboard; ttsProvider: string }> => {
   mkdirSync(join(process.cwd(), PATHS.voiceDir), { recursive: true });
   let provider = "";
 
@@ -423,5 +423,8 @@ export const generateVoice = async (
     scenes: timedScenes,
   };
 
-  return withVoice;
+  return {
+    storyboard: withVoice,
+    ttsProvider: provider || "unknown",
+  };
 };

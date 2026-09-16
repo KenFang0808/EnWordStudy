@@ -8,8 +8,12 @@ import { generateScript } from "../agents/scriptAgent.ts";
 import { generateStoryboard } from "../agents/storyboardAgent.ts";
 import { applyVisuals } from "../agents/visualAgent.ts";
 import { generateVoice } from "../agents/voiceAgent.ts";
-import { PATHS, slugify } from "../utils/assets.ts";
-import { loadDotEnv } from "../utils/env.ts";
+import { PATHS } from "../utils/assets.ts";
+import { getEnv, loadDotEnv } from "../utils/env.ts";
+import {
+  buildOutputStem,
+  nextFinalOutputPath,
+} from "../utils/outputName.ts";
 import { writeJson } from "../utils/writeJson.ts";
 import { getStoryboardDurationInSeconds } from "../utils/duration.ts";
 import { createPipelineState, type PipelineState } from "./pipelineState.ts";
@@ -48,6 +52,7 @@ const fail = (stage: string, error: unknown): never => {
 
 const generateVideo = async (): Promise<PipelineState> => {
   loadDotEnv();
+  let ttsProvider = "unknown";
 
   let state: PipelineState;
   try {
@@ -95,7 +100,9 @@ const generateVideo = async (): Promise<PipelineState> => {
     if (!state.storyboard) {
       throw new Error("Storyboard is missing before the Voice Agent.");
     }
-    state.storyboard = await generateVoice(state.storyboard);
+    const voiced = await generateVoice(state.storyboard);
+    state.storyboard = voiced.storyboard;
+    ttsProvider = voiced.ttsProvider;
   } catch (error) {
     return fail("voice", error);
   }
@@ -163,7 +170,14 @@ const generateVideo = async (): Promise<PipelineState> => {
 
   try {
     state.stage = "render";
-    const outputPath = `${PATHS.finalDir}/${slugify(state.request.topic)}.mp4`;
+    const outputPath = nextFinalOutputPath(
+      buildOutputStem({
+        topic: state.request.topic,
+        ttsProvider,
+        durationFactor: getEnv("INDEX_TTS_DURATION_FACTOR"),
+      }),
+    );
+    console.log(`Render: writing ${outputPath}`);
     runRemotion(["render", "AIVideo", outputPath]);
     state.outputPath = outputPath;
     runQa(state, "post-render");

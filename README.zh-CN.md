@@ -48,7 +48,7 @@
 7. 生成句级字幕并高亮目标词
 8. 渲染 QA 预览帧
 9. 执行单词教学内容 QA
-10. 渲染最终视频到 `output/final`
+10. 渲染最终视频到 `output/final/<单词>-<音色>-<语速>-v<版本>.mp4`
 
 项目只接受一个英文单词作为 `topic`，不会再退化为通用演讲或主题讲解模板。
 
@@ -62,7 +62,7 @@
 - `public/audio/voice/`：各场景配音
 - `public/audio/music/`：背景音乐
 - `output/previews/`：预览帧和中间预览产物
-- `output/final/`：最终 MP4 成片
+- `output/final/`：最终 MP4 成片，文件名形如 `tantrum-bill-1p1x-v1.mp4`
 
 主要代码目录：
 
@@ -228,6 +228,8 @@ npm run generate
 ```bash
 npm run generate:batch -- --file data/words.txt --duration 90
 ```
+
+成片不会再覆盖 `output/final/<word>.mp4`。默认命名是 `<单词>-<音色>-<语速>-v<版本>.mp4`，例如 `tantrum-bill-1p1x-v1.mp4`。同一组单词、音色和语速再跑一次会自动变成 `v2`。音色来自实际走通的 TTS（`index-tts` 用 `INDEX_TTS_VOICE` 的 preset 名或文件名），语速来自 `INDEX_TTS_DURATION_FACTOR`（未设置时写成 `default`）。
 
 单个单词失败时会记录错误并继续生成后续单词。
 
