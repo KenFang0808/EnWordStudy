@@ -8,12 +8,15 @@ import {
   type VocabularyEntry,
 } from "../models/vocabulary.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
+import { findRepetitiveCopyIssues } from "../utils/copyQuality.ts";
 import { getEnv } from "../utils/env.ts";
 import {
   countWords,
   estimateSpeakingDuration,
   targetWordCount,
 } from "../utils/words.ts";
+
+const MAX_REWRITE_ATTEMPTS = 3;
 
 const parseJsonObject = (text: string): unknown => {
   const fenced = text.match(/```json\s*([\s\S]*?)```/i);
@@ -130,13 +133,20 @@ const buildCatalogScript = (
   return validateScript(value, request);
 };
 
-const generateWithOpenAI = async (request: VideoRequest): Promise<Script> => {
+const generateWithOpenAI = async (
+  request: VideoRequest,
+  previousIssues: string[] = [],
+): Promise<Script> => {
   const apiKey = getEnv("OPENAI_API_KEY");
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is missing.");
   }
 
   const range = targetWordCount(request.duration);
+  const retryNote =
+    previousIssues.length > 0
+      ? `\n\nThe previous draft was rejected for repetitive copy: ${previousIssues.join(" ")} Rewrite the whole spoken lesson. Do not reuse those repeated phrases.`
+      : "";
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -145,7 +155,7 @@ const generateWithOpenAI = async (request: VideoRequest): Promise<Script> => {
     },
     body: JSON.stringify({
       model: getEnv("OPENAI_SCRIPT_MODEL") ?? "gpt-4o-mini",
-      temperature: 0.4,
+      temperature: previousIssues.length > 0 ? 0.7 : 0.4,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -171,7 +181,7 @@ sections: exactly 4 items in this order, each with heading, narration (2-4 spoke
 
 closing: start with 'To remember "${request.topic},"' and end with a sentence that tells the learner when the word applies.
 
-Write natural spoken English, keep sentences short, and use the target word in every section.`,
+Write natural spoken English, keep sentences short, and use the target word in every section. Do not restate the same idea in hook, meaning, usage, and contrast; each section must add new information. Do not summarize the examples with phrases like "these examples show".${retryNote}`,
         },
       ],
     }),
@@ -198,17 +208,49 @@ export const generateScript = async (request: VideoRequest): Promise<Script> => 
   const entry = loadVocabularyCatalog().find(
     (item) => item.word.toLowerCase() === request.topic.trim().toLowerCase(),
   );
+  let previousIssues: string[] = [];
+
   if (entry) {
     console.log("Script Agent: using the local vocabulary catalog");
-    return buildCatalogScript(request, entry);
+    const catalogScript = buildCatalogScript(request, entry);
+    previousIssues = findRepetitiveCopyIssues(catalogScript);
+    if (previousIssues.length === 0) {
+      return catalogScript;
+    }
+
+    console.warn(
+      `Script Agent: catalog copy is repetitive (${previousIssues.join(" ")}). Regenerating.`,
+    );
   }
 
-  if (getEnv("OPENAI_API_KEY")) {
-    console.log("Script Agent: using OpenAI vocabulary generation");
-    return generateWithOpenAI(request);
+  if (!getEnv("OPENAI_API_KEY")) {
+    if (previousIssues.length > 0) {
+      throw new Error(
+        `Catalog copy is repetitive (${previousIssues.join(" ")}). Configure OPENAI_API_KEY to regenerate, or edit data/words/catalog.json.`,
+      );
+    }
+
+    throw new Error(
+      `No entry for "${request.topic}" in data/words/catalog.json. Add it or configure OPENAI_API_KEY.`,
+    );
+  }
+
+  for (let attempt = 1; attempt <= MAX_REWRITE_ATTEMPTS; attempt += 1) {
+    console.log(
+      `Script Agent: generating vocabulary copy with OpenAI (attempt ${attempt}/${MAX_REWRITE_ATTEMPTS})`,
+    );
+    const script = await generateWithOpenAI(request, previousIssues);
+    previousIssues = findRepetitiveCopyIssues(script);
+    if (previousIssues.length === 0) {
+      return script;
+    }
+
+    console.warn(
+      `Script Agent: generated copy is repetitive (${previousIssues.join(" ")}). Retrying.`,
+    );
   }
 
   throw new Error(
-    `No entry for "${request.topic}" in data/words/catalog.json. Add it or configure OPENAI_API_KEY.`,
+    `Could not generate non-repetitive copy after ${MAX_REWRITE_ATTEMPTS} rewrites: ${previousIssues.join(" ")}`,
   );
 };
