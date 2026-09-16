@@ -8,7 +8,10 @@ import {
   type VocabularyEntry,
 } from "../models/vocabulary.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
-import { findRepetitiveCopyIssues } from "../utils/copyQuality.ts";
+import {
+  findCopyQualityIssues,
+  removeExampleRecap,
+} from "../utils/copyQuality.ts";
 import { getEnv } from "../utils/env.ts";
 import {
   countWords,
@@ -125,7 +128,14 @@ const buildCatalogScript = (
       examples: entry.examples,
     },
     hook: entry.hook,
-    sections: entry.sections,
+    sections: entry.sections.map((section) =>
+      section.id === "examples"
+        ? {
+            ...section,
+            narration: removeExampleRecap(section.narration),
+          }
+        : section,
+    ),
     closing: entry.closing,
     wordCount: 0,
   };
@@ -145,7 +155,7 @@ const generateWithOpenAI = async (
   const range = targetWordCount(request.duration);
   const retryNote =
     previousIssues.length > 0
-      ? `\n\nThe previous draft was rejected for repetitive copy: ${previousIssues.join(" ")} Rewrite the whole spoken lesson. Do not reuse those repeated phrases.`
+      ? `\n\nThe previous draft failed copy-quality checks: ${previousIssues.join(" ")} Rewrite the whole spoken lesson and fix every issue.`
       : "";
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -171,17 +181,17 @@ Return JSON with: topic, language, audience, targetDurationSeconds, vocabulary, 
 
 vocabulary: word, IPA pronunciation, partOfSpeech, a concise definition, memoryHook, and 3 complete example sentences.
 
-hook: one sentence in the form 'The word "${request.topic}" describes ...'.
+hook: one sentence in the form 'The word "${request.topic}" describes ...' that names the word and its most useful sense.
 
 sections: exactly 4 items in this order, each with heading, narration (2-4 spoken sentences), and 3 short points:
-1. id "meaning", heading "Understand the meaning" - explain the core sense and nuance.
-2. id "usage", heading "Know how people use it" - explain natural collocations and patterns.
-3. id "examples", heading "Learn it through examples" - narrate 3 complete example sentences; each point is one short complete sentence using the word.
-4. id "contrast", heading "Avoid common confusion" - compare it with a near-synonym and explain the difference.
+1. id "meaning", heading "Understand the meaning" - explain the core sense and nuance once; do not repeat the hook.
+2. id "usage", heading "Know how people use it" - teach natural collocations and one reusable sentence pattern.
+3. id "examples", heading "Learn it through examples" - narrate 3 vivid 6-22 word example sentences from clearly different situations; each point is one complete sentence. Do not summarize them afterward.
+4. id "contrast", heading "Avoid common confusion" - compare it with one near-synonym and give a practical choice rule.
 
 closing: start with 'To remember "${request.topic},"' and end with a sentence that tells the learner when the word applies.
 
-Write natural spoken English, keep sentences short, and use the target word in every section. Do not restate the same idea in hook, meaning, usage, and contrast; each section must add new information. Do not summarize the examples with phrases like "these examples show".${retryNote}`,
+Write like a concise human teacher, not a dictionary or template. Keep sentences short and use the target word in every section. Every scene must add new information. Vary transitions instead of repeating "For example / Another example / You can also say".${retryNote}`,
         },
       ],
     }),
@@ -213,20 +223,20 @@ export const generateScript = async (request: VideoRequest): Promise<Script> => 
   if (entry) {
     console.log("Script Agent: using the local vocabulary catalog");
     const catalogScript = buildCatalogScript(request, entry);
-    previousIssues = findRepetitiveCopyIssues(catalogScript);
+    previousIssues = findCopyQualityIssues(catalogScript);
     if (previousIssues.length === 0) {
       return catalogScript;
     }
 
     console.warn(
-      `Script Agent: catalog copy is repetitive (${previousIssues.join(" ")}). Regenerating.`,
+      `Script Agent: catalog copy failed quality checks (${previousIssues.join(" ")}). Regenerating.`,
     );
   }
 
   if (!getEnv("OPENAI_API_KEY")) {
     if (previousIssues.length > 0) {
       throw new Error(
-        `Catalog copy is repetitive (${previousIssues.join(" ")}). Configure OPENAI_API_KEY to regenerate, or edit data/words/catalog.json.`,
+        `Catalog copy failed quality checks (${previousIssues.join(" ")}). Configure OPENAI_API_KEY to regenerate, or edit data/words/catalog.json.`,
       );
     }
 
@@ -240,17 +250,17 @@ export const generateScript = async (request: VideoRequest): Promise<Script> => 
       `Script Agent: generating vocabulary copy with OpenAI (attempt ${attempt}/${MAX_REWRITE_ATTEMPTS})`,
     );
     const script = await generateWithOpenAI(request, previousIssues);
-    previousIssues = findRepetitiveCopyIssues(script);
+    previousIssues = findCopyQualityIssues(script);
     if (previousIssues.length === 0) {
       return script;
     }
 
     console.warn(
-      `Script Agent: generated copy is repetitive (${previousIssues.join(" ")}). Retrying.`,
+      `Script Agent: generated copy failed quality checks (${previousIssues.join(" ")}). Retrying.`,
     );
   }
 
   throw new Error(
-    `Could not generate non-repetitive copy after ${MAX_REWRITE_ATTEMPTS} rewrites: ${previousIssues.join(" ")}`,
+    `Could not generate engaging copy after ${MAX_REWRITE_ATTEMPTS} rewrites: ${previousIssues.join(" ")}`,
   );
 };

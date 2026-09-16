@@ -60,6 +60,14 @@ const STOP_WORDS = new Set([
 const EXAMPLE_FILLER =
   /\b(these examples show|this example shows|as these examples|the examples above)\b/i;
 
+export const removeExampleRecap = (text: string): string =>
+  text
+    .replace(
+      /\s+(?:these examples show|this example shows|as these examples|the examples above)\b[\s\S]*$/i,
+      "",
+    )
+    .trim();
+
 const normalizeText = (value: string): string =>
   value
     .toLowerCase()
@@ -99,7 +107,21 @@ const teachingNarrations = (
     .map((section) => ({ id: section.id, text: section.narration })),
 ];
 
-export const findRepetitiveCopyIssues = (script: Script): string[] => {
+export const getWordFamilyPattern = (word: string): RegExp => {
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const variants = [`${escaped}(?:s|es|ed|d|ing)?`];
+  if (word.endsWith("e") && word.length > 5) {
+    const root = word.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    variants.push(`${root}(?:ed|ing)`);
+  }
+  if (word.endsWith("ion") && word.length > 6) {
+    const root = word.slice(0, -3).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    variants.push(`${root}[a-z]*`);
+  }
+  return new RegExp(`\\b(?:${variants.join("|")})\\b`, "i");
+};
+
+export const findCopyQualityIssues = (script: Script): string[] => {
   const word = script.vocabulary.word.toLowerCase();
   const issues: string[] = [];
   const teaching = teachingNarrations(script);
@@ -149,6 +171,39 @@ export const findRepetitiveCopyIssues = (script: Script): string[] => {
     issues.push(
       'the examples section restates the examples instead of letting the sentences teach the word',
     );
+  }
+
+  const targetPattern = getWordFamilyPattern(word);
+  const normalizedExamples = new Set<string>();
+  script.vocabulary.examples.forEach((example, index) => {
+    const words = example.trim().split(/\s+/).filter(Boolean);
+    if (words.length < 5 || words.length > 22) {
+      issues.push(
+        `example ${index + 1} should be a vivid 5-22 word sentence, but has ${words.length} words`,
+      );
+    }
+    if (!targetPattern.test(example)) {
+      issues.push(
+        `example ${index + 1} does not use "${script.vocabulary.word}" or an inflected form`,
+      );
+    }
+    if (!/[.!?]["']?$/.test(example.trim())) {
+      issues.push(`example ${index + 1} is not a complete sentence`);
+    }
+    normalizedExamples.add(normalizeText(example));
+  });
+  if (normalizedExamples.size !== script.vocabulary.examples.length) {
+    issues.push("the lesson contains duplicate example sentences");
+  }
+
+  const hookWords = script.hook.trim().split(/\s+/).filter(Boolean);
+  if (hookWords.length < 8 || hookWords.length > 30) {
+    issues.push(
+      `the hook should be concise (8-30 words), but has ${hookWords.length} words`,
+    );
+  }
+  if (/^(welcome|in this video|today we(?:'|’)ll)/i.test(script.hook.trim())) {
+    issues.push("the hook opens with generic video filler instead of the word");
   }
 
   return issues;

@@ -34,6 +34,23 @@ export const SceneShell: React.FC<{
                 : "100px 80px 150px",
           }}
         >
+          {scene.onScreenText.progressLabel ? (
+            <Interactive.Div
+              name="Lesson progress"
+              style={{
+                position: "absolute",
+                top: isPortrait ? 62 : 58,
+                right: isPortrait ? 54 : 76,
+                fontFamily,
+                fontSize: isPortrait ? 22 : 24,
+                fontWeight: 700,
+                letterSpacing: 2.4,
+                color: "rgba(226, 232, 240, 0.54)",
+              }}
+            >
+              {scene.onScreenText.progressLabel}
+            </Interactive.Div>
+          ) : null}
           {!isSingleTextScene ? (
             <div
               style={{

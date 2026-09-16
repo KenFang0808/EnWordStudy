@@ -4,8 +4,11 @@ import { storyboardSchema, type Storyboard } from "../models/storyboard.ts";
 import { VOCABULARY_SECTION_IDS } from "../models/vocabulary.ts";
 import type { PipelineState } from "../pipeline/pipelineState.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
-import { findRepetitiveCopyIssues } from "../utils/copyQuality.ts";
-import { getStoryboardDurationInSeconds } from "../utils/duration.ts";
+import { findCopyQualityIssues } from "../utils/copyQuality.ts";
+import {
+  getSceneStartSeconds,
+  getStoryboardDurationInSeconds,
+} from "../utils/duration.ts";
 
 const normalizeText = (value: string): string =>
   value
@@ -112,6 +115,83 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   if (state.script.vocabulary.examples.length < 3) {
     throw new Error("QA: vocabulary lesson needs at least three examples.");
   }
+  // The first frame is reused as the video cover, so the word, its IPA and the
+  // part of speech must be on screen from frame 0 without an entrance animation.
+  const introScene = state.storyboard.scenes.find(
+    (scene) => scene.id === "intro",
+  );
+  if (!introScene) {
+    throw new Error("QA: storyboard is missing the intro scene.");
+  }
+  if (introScene.onScreenText.title.trim().toLowerCase() !== word) {
+    throw new Error(`QA: intro must show the word "${word}" as its title.`);
+  }
+  if (
+    !introScene.onScreenText.pronunciation?.trim() ||
+    !introScene.onScreenText.partOfSpeech?.trim()
+  ) {
+    throw new Error("QA: intro must show the pronunciation and part of speech.");
+  }
+  if (introScene.animation.enter !== "none") {
+    throw new Error(
+      "QA: intro must not animate in, otherwise the cover frame starts blank.",
+    );
+  }
+  const exampleScene = state.storyboard.scenes.find(
+    (scene) => scene.id === "examples",
+  );
+  if (
+    !exampleScene ||
+    exampleScene.visual.items?.length !==
+      state.script.vocabulary.examples.length
+  ) {
+    throw new Error("QA: examples scene must show every full example sentence.");
+  }
+  const outroScene = state.storyboard.scenes.find(
+    (scene) => scene.id === "outro",
+  );
+  if (
+    outroScene?.onScreenText.title !== "Your turn" ||
+    !outroScene.onScreenText.subtitle?.includes("______")
+  ) {
+    throw new Error("QA: outro needs a fill-in-the-blank retrieval challenge.");
+  }
+  if (
+    state.storyboard.scenes.some(
+      (scene, index) =>
+        scene.onScreenText.progressLabel !==
+        `${index + 1} / ${state.storyboard?.scenes.length}`,
+    )
+  ) {
+    throw new Error("QA: every scene needs a progress label.");
+  }
+
+  const starts = getSceneStartSeconds(state.storyboard);
+  for (const sceneId of ["examples", "outro"]) {
+    const sceneIndex = state.storyboard.scenes.findIndex(
+      (scene) => scene.id === sceneId,
+    );
+    if (sceneIndex === -1) {
+      continue;
+    }
+    const sceneStartMs = Math.round(starts[sceneIndex] * 1000);
+    // The next scene overlaps this one by the transition duration, so its
+    // first cue may legitimately start before this scene ends.
+    const sceneEndMs = Math.round(
+      (starts[sceneIndex + 1] ??
+        starts[sceneIndex] +
+          state.storyboard.scenes[sceneIndex].durationInSeconds) * 1000,
+    );
+    if (
+      state.storyboard.captions.some(
+        (cue) => cue.startMs >= sceneStartMs && cue.startMs < sceneEndMs,
+      )
+    ) {
+      throw new Error(
+        `QA: scene "${sceneId}" repeats visible text in bottom captions.`,
+      );
+    }
+  }
   const combinedNarration = state.storyboard.scenes
     .map((scene) => scene.narration)
     .join(" ")
@@ -136,9 +216,9 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   if (new Set(normalizedNarrations).size !== normalizedNarrations.length) {
     throw new Error("QA: two scenes contain duplicate narration.");
   }
-  const repetitiveCopy = findRepetitiveCopyIssues(state.script);
-  if (repetitiveCopy.length > 0) {
-    throw new Error(`QA: ${repetitiveCopy.join(" ")}`);
+  const copyQualityIssues = findCopyQualityIssues(state.script);
+  if (copyQualityIssues.length > 0) {
+    throw new Error(`QA: ${copyQualityIssues.join(" ")}`);
   }
   if (
     !state.storyboard.captions.some((cue) =>
