@@ -147,15 +147,6 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   ) {
     throw new Error("QA: examples scene must show every full example sentence.");
   }
-  const outroScene = state.storyboard.scenes.find(
-    (scene) => scene.id === "outro",
-  );
-  if (
-    outroScene?.onScreenText.title !== "Your turn" ||
-    !outroScene.onScreenText.subtitle?.includes("______")
-  ) {
-    throw new Error("QA: outro needs a fill-in-the-blank retrieval challenge.");
-  }
   if (
     state.storyboard.scenes.some(
       (scene, index) =>
@@ -167,7 +158,7 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
   }
 
   const starts = getSceneStartSeconds(state.storyboard);
-  for (const sceneId of ["examples", "outro"]) {
+  for (const sceneId of ["examples"]) {
     const sceneIndex = state.storyboard.scenes.findIndex(
       (scene) => scene.id === sceneId,
     );

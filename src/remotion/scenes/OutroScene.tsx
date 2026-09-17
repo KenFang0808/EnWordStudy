@@ -8,22 +8,10 @@ import { fontFamily } from "../font";
 
 export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
   const frame = useCurrentFrame();
-  const { durationInFrames, fps, width, height } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const isPortrait = height > width;
   const items = scene.visual.items ?? [];
-  const isPracticePrompt = Boolean(
-    scene.onScreenText.body && scene.onScreenText.subtitle,
-  );
   const isSingleBlock = !scene.onScreenText.subtitle && items.length === 0;
-  const answerOpacity = interpolate(
-    frame,
-    [durationInFrames * 0.68, durationInFrames * 0.78],
-    [0, 1],
-    {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    },
-  );
   const emphasisMotionStyle = isSingleBlock
     ? {
         opacity: interpolate(frame, [0, 0.4 * fps], [0.72, 1], {
@@ -47,19 +35,14 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          alignItems:
-            isSingleBlock || isPracticePrompt ? "center" : "flex-start",
+          alignItems: isSingleBlock ? "center" : "flex-start",
           height: "100%",
           gap: isPortrait ? 28 : 24,
         }}
       >
         <div
           style={{
-            maxWidth: isPracticePrompt
-              ? isPortrait
-                ? 900
-                : 1120
-              : isSingleBlock
+            maxWidth: isSingleBlock
               ? isPortrait
                 ? 860
                 : 1000
@@ -68,67 +51,7 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                 : 860,
           }}
         >
-          {isPracticePrompt ? (
-            <>
-              <Interactive.Div
-                name="Practice label"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 24 : 28,
-                  fontWeight: 800,
-                  letterSpacing: 4,
-                  color: scene.visual.accentColor ?? "#34D399",
-                  textAlign: "center",
-                  marginBottom: 24,
-                }}
-              >
-                FILL IN THE BLANK
-              </Interactive.Div>
-              <Interactive.Div
-                name="Practice prompt"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 58 : 72,
-                  fontWeight: 800,
-                  color: "#F8FAFC",
-                  lineHeight: 1.18,
-                  letterSpacing: -1.2,
-                  textAlign: "center",
-                }}
-              >
-                {scene.onScreenText.subtitle}
-              </Interactive.Div>
-              <Interactive.Div
-                name="Practice instruction"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 30 : 34,
-                  fontWeight: 600,
-                  color: "#94A3B8",
-                  lineHeight: 1.35,
-                  textAlign: "center",
-                  marginTop: 34,
-                }}
-              >
-                {scene.onScreenText.body}
-              </Interactive.Div>
-              <Interactive.Div
-                name="Practice answer"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 42 : 48,
-                  fontWeight: 800,
-                  color: scene.visual.accentColor ?? "#34D399",
-                  textAlign: "center",
-                  marginTop: 42,
-                  opacity: answerOpacity,
-                  transform: `translateY(${(1 - answerOpacity) * 16}px)`,
-                }}
-              >
-                Answer: {scene.visual.highlightTerm}
-              </Interactive.Div>
-            </>
-          ) : isSingleBlock ? (
+          {isSingleBlock ? (
             <div style={emphasisMotionStyle}>
               <Interactive.Div
                 name="Outro single block"
@@ -148,12 +71,12 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
           ) : (
             <Title text={scene.onScreenText.title} name="Outro title" />
           )}
-          {!isPracticePrompt && scene.onScreenText.subtitle ? (
+          {scene.onScreenText.subtitle ? (
             <div style={{ marginTop: 18 }}>
               <Subtitle text={scene.onScreenText.subtitle} name="Outro subtitle" />
             </div>
           ) : null}
-          {!isPracticePrompt && !isSingleBlock ? (
+          {!isSingleBlock ? (
             <Interactive.Div
               name="Outro narration summary"
               style={{

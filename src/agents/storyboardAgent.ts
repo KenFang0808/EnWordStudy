@@ -7,7 +7,6 @@ import {
   type SceneType,
   type Storyboard,
 } from "../models/storyboard.ts";
-import { getWordFamilyPattern } from "../utils/copyQuality.ts";
 import { countWords } from "../utils/words.ts";
 
 const SCENE_PLAN: Array<{
@@ -37,19 +36,6 @@ const closingFor = (
   }
 
   return sentences.slice(1).join(" ") || script.closing;
-};
-
-const buildPracticePrompt = (script: Script): string => {
-  const example = script.vocabulary.examples[0];
-  if (!example) {
-    return `Use ______ in a sentence of your own.`;
-  }
-
-  const targetPattern = getWordFamilyPattern(script.vocabulary.word);
-
-  return targetPattern.test(example)
-    ? example.replace(targetPattern, "______")
-    : `${example} Which word completes this idea?`;
 };
 
 const narrationFor = (script: Script, planIndex: number): string => {
@@ -136,22 +122,15 @@ export const generateStoryboard = (
               ? undefined
               : script.topic.toUpperCase(),
         progressLabel: `${index + 1} / ${SCENE_PLAN.length}`,
-        title:
-          plan.type === "outro"
-            ? "Your turn"
-            : headingFor(script, index),
+        title: headingFor(script, index),
         subtitle:
           plan.type === "intro"
             ? script.vocabulary.definition
-            : plan.type === "outro"
-              ? buildPracticePrompt(script)
-              : plan.type === "quote" || plan.type === "list"
-                ? undefined
-                : section?.points?.[0],
-        body:
-          plan.type === "outro"
-            ? `Say the missing word, then make one sentence of your own.`
-            : undefined,
+            : plan.type === "quote" ||
+                plan.type === "outro" ||
+                plan.type === "list"
+              ? undefined
+              : section?.points?.[0],
         pronunciation:
           plan.type === "intro" ? script.vocabulary.pronunciation : undefined,
         partOfSpeech:
