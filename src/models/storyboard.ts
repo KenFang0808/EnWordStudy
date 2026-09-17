@@ -25,6 +25,7 @@ export const transitionSchema = z.object({
 
 export const onScreenTextSchema = z.object({
   eyebrow: z.string().optional(),
+  progressLabel: z.string().optional(),
   title: z.string().min(1),
   subtitle: z.string().optional(),
   body: z.string().optional(),

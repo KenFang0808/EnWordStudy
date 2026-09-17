@@ -43,6 +43,7 @@ export const applyVisuals = (storyboard: Storyboard): Storyboard => {
 
     const visual: VisualSpec = {
       accentColor: scene.visual.accentColor ?? accentColor,
+      highlightTerm: scene.visual.highlightTerm,
       items,
       nodes: scene.type === "diagram" ? defaultNodes(scene) : scene.visual.nodes,
       edges: scene.visual.edges,

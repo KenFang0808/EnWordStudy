@@ -44,8 +44,10 @@ export const generateCaptions = (storyboard: Storyboard): Storyboard => {
 
   storyboard.scenes.forEach((scene, index) => {
     if (
+      scene.id === "examples" ||
+      scene.type === "outro" ||
       normalizeText(scene.onScreenText.title) ===
-      normalizeText(scene.narration)
+        normalizeText(scene.narration)
     ) {
       return;
     }

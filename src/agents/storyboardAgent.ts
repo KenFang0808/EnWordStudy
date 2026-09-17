@@ -121,6 +121,7 @@ export const generateStoryboard = (
             : plan.type === "quote" || plan.type === "outro"
               ? undefined
               : script.topic.toUpperCase(),
+        progressLabel: `${index + 1} / ${SCENE_PLAN.length}`,
         title: headingFor(script, index),
         subtitle:
           plan.type === "intro"
@@ -137,7 +138,12 @@ export const generateStoryboard = (
       },
       visual: {
         highlightTerm: script.topic,
-        items: section?.points?.map((point) => ({ title: point })),
+        items:
+          plan.id === "examples"
+            ? script.vocabulary.examples.map((example) => ({
+                title: example,
+              }))
+            : section?.points?.map((point) => ({ title: point })),
       },
       animation: {
         enter:

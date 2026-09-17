@@ -10,6 +10,16 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
   const isPortrait = height > width;
   const isWordFocusTitle = /^[a-zA-Z-]+$/.test(scene.onScreenText.title.trim());
   const accent = scene.visual.accentColor ?? "#22D3EE";
+  const titleLength = scene.onScreenText.title.length;
+  const heroFontSize = isPortrait
+    ? titleLength > 10
+      ? 130
+      : titleLength > 8
+        ? 150
+        : 176
+    : titleLength > 10
+      ? 174
+      : 220;
 
   return (
     <SceneShell scene={scene}>
@@ -60,7 +70,7 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                       ? "translate(12px, 12px)"
                       : "translate(14px, 14px)",
                     fontFamily,
-                    fontSize: isPortrait ? 176 : 220,
+                    fontSize: heroFontSize,
                     fontWeight: 900,
                     letterSpacing: isPortrait ? -9 : -11,
                     lineHeight: 0.92,
@@ -78,7 +88,7 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                   style={{
                     position: "relative",
                     fontFamily,
-                    fontSize: isPortrait ? 176 : 220,
+                    fontSize: heroFontSize,
                     fontWeight: 900,
                     letterSpacing: isPortrait ? -9 : -11,
                     lineHeight: 0.92,
