@@ -204,16 +204,16 @@ npm run lint
 ### 通过主管线生成视频
 
 ```bash
-npm run generate -- <topic> --duration 90 --language en --style vocabulary-cinematic --audience "English learners"
+npm run generate -- <topic> --duration 90
 ```
 
 示例：
 
 ```bash
-npm run generate -- accolade --duration 90 --language en --style vocabulary-cinematic --audience "English learners"
+npm run generate -- accolade --duration 90
 ```
 
-纯英文版使用 `--language en`，双语版使用 `--language zh`。两种请求会从词库选择各自的 `en` / `bilingual` 词条；片尾 CTA 和 IndexTTS 的 `EN` / `ZH` 模式也会同步切换。
+默认走双语讲解。纯英文版加上 `--language en`。两种请求会从词库选择各自的 `bilingual` / `en` 词条；片尾 CTA 和 IndexTTS 的 `ZH` / `EN` 模式也会同步切换。
 
 ### 使用 `data/input.json` 直接生成
 
@@ -242,7 +242,7 @@ npm run generate:batch -- --file data/words.txt --duration 90
 当前约束：
 
 - `topic`：必填
-- `language`：默认 `en`
+- `language`：默认 `zh`（双语讲解）
 - `duration`：
   - 最短 `60`
   - 默认 `90`
@@ -253,7 +253,7 @@ npm run generate:batch -- --file data/words.txt --duration 90
 项目当前实际最常见的使用方式是：
 
 - `topic`: 单词
-- `language`: `en`
+- `language`: `zh`
 - `duration`: `90`
 - `style`: `vocabulary-cinematic`
 - `audience`: `English learners`

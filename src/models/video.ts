@@ -7,7 +7,7 @@ export const VIDEO_DEFAULTS = {
   minDurationSeconds: 60,
   defaultDurationSeconds: 90,
   maxDurationSeconds: 120,
-  language: "en",
+  language: "zh",
   style: "modern-tech",
   voiceVolume: 1,
   musicVolume: 0.08,

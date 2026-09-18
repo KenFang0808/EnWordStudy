@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { VIDEO_DEFAULTS } from "../models/video.ts";
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const option = (name: string): string | undefined => {
@@ -9,8 +10,8 @@ const option = (name: string): string | undefined => {
 };
 
 const file = option("file") ?? "data/words.txt";
-const duration = option("duration") ?? "90";
-const language = option("language") ?? "en";
+const duration = option("duration") ?? String(VIDEO_DEFAULTS.defaultDurationSeconds);
+const language = option("language") ?? VIDEO_DEFAULTS.language;
 const style = option("style") ?? "vocabulary-cinematic";
 const audience = option("audience") ?? "English learners";
 const dryRun = args.includes("--dry-run");
