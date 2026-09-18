@@ -78,11 +78,11 @@
 
 当前逻辑只服务单词讲解：
 
-1. 优先读取 `data/words/catalog.json` 中的结构化词条
-2. 本地没有词条且配置了 `OPENAI_API_KEY` 时，调用单词专用提示词生成
+1. 按单词和语言风格读取 `data/words/catalog.json` 中的结构化词条
+2. 本地没有对应风格的词条且配置了 `OPENAI_API_KEY` 时，调用单词专用提示词生成
 3. 两者都不可用时立即报错，不会回退到通用主题或演讲脚本
 
-每个词条包含两部分：一是音标、词性、释义、记忆钩子、三个完整例句这类元信息，二是人工撰写的讲解文案，即开场句、四个小节（`meaning` / `usage` / `examples` / `contrast`，各自带标题、旁白和三个要点）和收尾句。
+词条通过 `style` 区分 `en`（纯英文）和 `bilingual`（英文单词、搭配和例句，中文解释）。同一个单词可以各存一条，彼此不会覆盖；未写 `style` 的旧词条默认是 `en`。每个词条包含两部分：一是音标、词性、释义、记忆钩子、三个完整例句这类元信息，二是人工撰写的讲解文案，即开场句、四个小节（`meaning` / `usage` / `examples` / `contrast`，各自带标题、旁白和三个要点）和收尾句。
 
 `scriptAgent` 直接使用词条里的文案原文，不会把元信息拼接成句子，以保证口播自然。脚本长度只校验目标时长对应的下限，避免手写的好文案被长度上限拒绝。
 
@@ -213,6 +213,8 @@ npm run generate -- <topic> --duration 90 --language en --style vocabulary-cinem
 npm run generate -- accolade --duration 90 --language en --style vocabulary-cinematic --audience "English learners"
 ```
 
+纯英文版使用 `--language en`，双语版使用 `--language zh`。两种请求会从词库选择各自的 `en` / `bilingual` 词条；片尾 CTA 和 IndexTTS 的 `EN` / `ZH` 模式也会同步切换。
+
 ### 使用 `data/input.json` 直接生成
 
 如果 `data/input.json` 已经存在，也可以直接：
@@ -286,7 +288,7 @@ QA 还会检查口播是否在不同小节里复述同一层意思。开场、�
 
 ### 1. 如何添加新单词？
 
-在 `data/words/catalog.json` 添加一个结构化词条即可，不需要修改 TypeScript。若配置了 `OPENAI_API_KEY`，未收录单词也可以由单词专用生成器创建脚本。
+在 `data/words/catalog.json` 添加一个结构化词条即可，不需要修改 TypeScript。纯英文词条使用 `"style": "en"`，双语词条使用 `"style": "bilingual"`；同一个单词可以同时保存两种版本。若配置了 `OPENAI_API_KEY`，缺少的语言版本也可以由单词专用生成器创建脚本。
 
 ### 2. 为什么不同音色下时长差很多？
 

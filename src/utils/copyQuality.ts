@@ -1,4 +1,7 @@
 import type { Script } from "../models/script.ts";
+import { splitSentences } from "./text.ts";
+import { getWordFamilyPattern } from "./wordFamily.ts";
+import { countWords } from "./words.ts";
 
 const STOP_WORDS = new Set([
   "a",
@@ -71,7 +74,7 @@ export const removeExampleRecap = (text: string): string =>
 const normalizeText = (value: string): string =>
   value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ")
     .trim();
 
 const contentTokens = (text: string, word: string): string[] =>
@@ -107,20 +110,6 @@ const teachingNarrations = (
     .map((section) => ({ id: section.id, text: section.narration })),
 ];
 
-export const getWordFamilyPattern = (word: string): RegExp => {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const variants = [`${escaped}(?:s|es|ed|d|ing)?`];
-  if (word.endsWith("e") && word.length > 5) {
-    const root = word.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    variants.push(`${root}(?:ed|ing)`);
-  }
-  if (word.endsWith("ion") && word.length > 6) {
-    const root = word.slice(0, -3).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    variants.push(`${root}[a-z]*`);
-  }
-  return new RegExp(`\\b(?:${variants.join("|")})\\b`, "i");
-};
-
 export const findCopyQualityIssues = (script: Script): string[] => {
   const word = script.vocabulary.word.toLowerCase();
   const issues: string[] = [];
@@ -153,9 +142,9 @@ export const findCopyQualityIssues = (script: Script): string[] => {
     ...script.sections.map((section) => section.narration),
     script.closing,
   ]
-    .flatMap((text) => text.split(/(?<=[.!?])\s+/))
+    .flatMap((text) => splitSentences(text))
     .map((sentence) => normalizeText(sentence))
-    .filter((sentence) => sentence.split(" ").length >= 6);
+    .filter((sentence) => countWords(sentence) >= 6);
 
   const seen = new Set<string>();
   for (const sentence of sentences) {
@@ -196,10 +185,10 @@ export const findCopyQualityIssues = (script: Script): string[] => {
     issues.push("the lesson contains duplicate example sentences");
   }
 
-  const hookWords = script.hook.trim().split(/\s+/).filter(Boolean);
-  if (hookWords.length < 8 || hookWords.length > 30) {
+  const hookLength = countWords(script.hook);
+  if (hookLength < 8 || hookLength > 30) {
     issues.push(
-      `the hook should be concise (8-30 words), but has ${hookWords.length} words`,
+      `the hook should be concise (8-30 words), but has ${hookLength} words`,
     );
   }
   if (/^(welcome|in this video|today we(?:'|’)ll)/i.test(script.hook.trim())) {

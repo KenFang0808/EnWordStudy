@@ -1,22 +1,23 @@
 import React from "react";
-
-const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+import {
+  getWordFamilySplitPattern,
+  isWordFamilyForm,
+} from "../../utils/wordFamily";
 
 export const HighlightedText: React.FC<{
   readonly text: string;
   readonly term: string;
   readonly accentColor?: string;
 }> = ({ text, term, accentColor = "#22D3EE" }) => {
-  if (!term.trim()) {
+  const trimmedTerm = term.trim();
+  if (!trimmedTerm) {
     return text;
   }
 
-  const pattern = new RegExp(`(${escapeRegExp(term)})`, "gi");
   return (
     <>
-      {text.split(pattern).map((part, index) =>
-        part.toLowerCase() === term.toLowerCase() ? (
+      {text.split(getWordFamilySplitPattern(trimmedTerm)).map((part, index) =>
+        isWordFamilyForm(part, trimmedTerm) ? (
           <span
             key={`${part}-${index}`}
             style={{

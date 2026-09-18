@@ -5,6 +5,7 @@ import { VOCABULARY_SECTION_IDS } from "../models/vocabulary.ts";
 import type { PipelineState } from "../pipeline/pipelineState.ts";
 import { VIDEO_DEFAULTS } from "../models/video.ts";
 import { findCopyQualityIssues } from "../utils/copyQuality.ts";
+import { getOutroCallToAction } from "../utils/callToAction.ts";
 import {
   getSceneStartSeconds,
   getStoryboardDurationInSeconds,
@@ -13,7 +14,7 @@ import {
 const normalizeText = (value: string): string =>
   value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ")
     .trim();
 
 const formatIssues = (
@@ -155,6 +156,26 @@ export const runQa = (state: PipelineState, phase: "pre-render" | "post-render")
     )
   ) {
     throw new Error("QA: every scene needs a progress label.");
+  }
+  const outroScene = state.storyboard.scenes.find(
+    (scene) => scene.type === "outro",
+  );
+  if (!outroScene) {
+    throw new Error("QA: storyboard is missing the outro scene.");
+  }
+  const expectedCallToAction = getOutroCallToAction(
+    state.storyboard.language,
+  );
+  if (outroScene.onScreenText.body !== expectedCallToAction) {
+    throw new Error(
+      `QA: outro must show the series call to action "${expectedCallToAction}".`,
+    );
+  }
+  if (outroScene.onScreenText.title.includes(expectedCallToAction)) {
+    throw new Error("QA: outro title must stay on the teaching close.");
+  }
+  if (!outroScene.narration.includes(expectedCallToAction)) {
+    throw new Error("QA: outro narration must speak the series call to action.");
   }
 
   const starts = getSceneStartSeconds(state.storyboard);

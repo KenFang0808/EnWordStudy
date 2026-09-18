@@ -7,6 +7,7 @@ import { VIDEO_DEFAULTS } from "../models/video.ts";
 import { PATHS } from "../utils/assets.ts";
 import { getLocalAudioDurationSeconds, requireCommand } from "../utils/audio.ts";
 import { getEnv } from "../utils/env.ts";
+import { hasCjkCharacters, isChineseLanguage } from "../utils/text.ts";
 
 const TAIL_SECONDS = 0.3;
 const MIN_SCENE_SECONDS = 3;
@@ -82,6 +83,23 @@ const mapIndexTtsLanguage = (language: string): string => {
   }
 
   throw new Error(`IndexTTS does not support language "${language}".`);
+};
+
+const assertNarrationMatchesLanguage = (
+  narration: string,
+  language: string,
+  sceneId: string,
+): void => {
+  if (isChineseLanguage(language) && !hasCjkCharacters(narration)) {
+    throw new Error(
+      `Voice Agent: bilingual scene "${sceneId}" has no Chinese explanation.`,
+    );
+  }
+  if (/^en(?:-|$)/i.test(language.trim()) && hasCjkCharacters(narration)) {
+    throw new Error(
+      `Voice Agent: English scene "${sceneId}" contains Chinese copy.`,
+    );
+  }
 };
 
 const convertWavToMp3 = (inputPath: string, outputPath: string): void => {
@@ -354,6 +372,11 @@ export const generateVoice = async (
     if (scene.narration.trim().length === 0) {
       throw new Error(`Voice Agent: scene "${scene.id}" is missing narration.`);
     }
+    assertNarrationMatchesLanguage(
+      scene.narration,
+      storyboard.language,
+      scene.id,
+    );
 
     console.log(`Voice Agent: synthesizing ${scene.id}...`);
     const relativeFile = `${PATHS.voiceDir}/${scene.id}.mp3`.replace(
