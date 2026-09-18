@@ -213,7 +213,7 @@ sections: exactly 4 items in this order, each with heading, narration (2-4 spoke
 1. id "meaning", heading "${headings[0]}" - explain the core sense and nuance once; do not repeat the hook.
 2. id "usage", heading "${headings[1]}" - teach natural collocations and one reusable sentence pattern.
 3. id "examples", heading "${headings[2]}" - narrate 3 vivid 6-22 word example sentences from clearly different situations; each point is one complete sentence. Do not summarize them afterward.
-4. id "contrast", heading "${headings[3]}" - compare it with one near-synonym and give a practical choice rule.
+4. id "contrast", heading "${headings[3]}" - compare it with one near-synonym and give a practical choice rule. In bilingual lessons, keep that near-synonym in English; Chinese may explain it, but never replace the English word with a translation.
 
 ${closingRule}
 

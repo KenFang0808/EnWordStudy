@@ -1,5 +1,5 @@
 import type { Script } from "../models/script.ts";
-import { splitSentences } from "./text.ts";
+import { hasCjkCharacters, splitClauses, splitSentences } from "./text.ts";
 import { getWordFamilyPattern } from "./wordFamily.ts";
 import { countWords } from "./words.ts";
 
@@ -101,6 +101,50 @@ const ngrams = (tokens: string[], size: number): string[] => {
   return grams;
 };
 
+const latinWordsIn = (text: string): string[] =>
+  text
+    .replace(/[^a-zA-Z-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.toLowerCase())
+    .filter((token) => token.length > 1 && !STOP_WORDS.has(token));
+
+const cjkOnly = (text: string): string =>
+  (text.match(/[\u3400-\u9fff]+/g) ?? []).join("");
+
+const findTranslatedContrastTerms = (script: Script): string[] => {
+  const contrast = script.sections.find((section) => section.id === "contrast");
+  if (!contrast || !hasCjkCharacters(contrast.narration)) {
+    return [];
+  }
+
+  const word = script.vocabulary.word.toLowerCase();
+  const clauses = splitClauses(contrast.narration);
+  const issues: string[] = [];
+
+  for (const point of contrast.points ?? []) {
+    const terms = latinWordsIn(point).filter((token) => token !== word);
+    const chinese = cjkOnly(point);
+    if (terms.length === 0 || chinese.length < 2) {
+      continue;
+    }
+
+    for (const clause of clauses) {
+      if (!cjkOnly(clause).includes(chinese)) {
+        continue;
+      }
+      if (terms.some((term) => latinWordsIn(clause).includes(term))) {
+        continue;
+      }
+      issues.push(
+        `contrast translates "${terms[0]}" into Chinese instead of keeping the English word`,
+      );
+    }
+  }
+
+  return [...new Set(issues)];
+};
+
 const teachingNarrations = (
   script: Script,
 ): Array<{ id: string; text: string }> => [
@@ -194,6 +238,8 @@ export const findCopyQualityIssues = (script: Script): string[] => {
   if (/^(welcome|in this video|today we(?:'|’)ll)/i.test(script.hook.trim())) {
     issues.push("the hook opens with generic video filler instead of the word");
   }
+
+  issues.push(...findTranslatedContrastTerms(script));
 
   return issues;
 };
