@@ -1,3 +1,4 @@
+import { fitText } from "@remotion/layout-utils";
 import { Interactive, useVideoConfig } from "remotion";
 import type { StoryboardSceneProps } from "../../models/storyboard";
 import { SceneShell } from "../components/SceneShell";
@@ -10,16 +11,26 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
   const isPortrait = height > width;
   const isWordFocusTitle = /^[a-zA-Z-]+$/.test(scene.onScreenText.title.trim());
   const accent = scene.visual.accentColor ?? "#22D3EE";
-  const titleLength = scene.onScreenText.title.length;
-  const heroFontSize = isPortrait
-    ? titleLength > 10
-      ? 130
-      : titleLength > 8
-        ? 150
-        : 176
-    : titleLength > 10
-      ? 174
-      : 220;
+  const heroMaxWidth = isPortrait ? 920 : 1080;
+  const heroStrokeWidth = isPortrait ? 4 : 5;
+  const heroShadowOffset = isPortrait ? 12 : 14;
+  // The stroke bleeds outwards and the drop shadow is offset, so the glyphs
+  // need less room than the column they sit in.
+  const heroAvailableWidth =
+    heroMaxWidth - (heroStrokeWidth + heroShadowOffset) * 2;
+  const heroLetterSpacing = "-0.05em";
+  const heroFontSize = Math.floor(
+    Math.min(
+      isPortrait ? 176 : 220,
+      fitText({
+        text: scene.onScreenText.title,
+        withinWidth: heroAvailableWidth,
+        fontFamily,
+        fontWeight: 900,
+        letterSpacing: heroLetterSpacing,
+      }).fontSize,
+    ),
+  );
 
   return (
     <SceneShell scene={scene}>
@@ -66,13 +77,11 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                   style={{
                     position: "absolute",
                     inset: 0,
-                    transform: isPortrait
-                      ? "translate(12px, 12px)"
-                      : "translate(14px, 14px)",
+                    transform: `translate(${heroShadowOffset}px, ${heroShadowOffset}px)`,
                     fontFamily,
                     fontSize: heroFontSize,
                     fontWeight: 900,
-                    letterSpacing: isPortrait ? -9 : -11,
+                    letterSpacing: heroLetterSpacing,
                     lineHeight: 0.92,
                     color: accent,
                     opacity: 0.98,
@@ -90,10 +99,10 @@ export const IntroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
                     fontFamily,
                     fontSize: heroFontSize,
                     fontWeight: 900,
-                    letterSpacing: isPortrait ? -9 : -11,
+                    letterSpacing: heroLetterSpacing,
                     lineHeight: 0.92,
                     color: "#F8FAFC",
-                    WebkitTextStroke: isPortrait ? `4px ${accent}` : `5px ${accent}`,
+                    WebkitTextStroke: `${heroStrokeWidth}px ${accent}`,
                     textShadow:
                       "0 12px 32px rgba(7, 12, 24, 0.36), 0 0 30px rgba(34, 211, 238, 0.16)",
                     whiteSpace: "nowrap",
