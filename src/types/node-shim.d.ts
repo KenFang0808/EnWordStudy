@@ -11,6 +11,10 @@ declare module "node:fs" {
     options?: { recursive?: boolean },
   ): void;
   export function statSync(path: string): { size: number };
+  export function openSync(path: string, flags: string): number;
+  export function writeSync(fd: number, data: string): number;
+  export function closeSync(fd: number): void;
+  export function unlinkSync(path: string): void;
 }
 
 declare module "node:path" {
@@ -37,9 +41,12 @@ declare module "node:child_process" {
 
 declare const process: {
   argv: string[];
+  pid: number;
   execPath: string;
   cwd: () => string;
   env: Record<string, string | undefined>;
   exitCode?: number;
   exit: (code: number) => never;
+  kill: (pid: number, signal?: number) => void;
+  on: (event: "exit", listener: () => void) => void;
 };

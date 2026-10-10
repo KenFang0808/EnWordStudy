@@ -1,38 +1,66 @@
 import type { CaptionCue, Storyboard } from "../models/storyboard.ts";
 import { getSceneStartSeconds, getStoryboardDurationInSeconds } from "../utils/duration.ts";
+import { splitClauses, splitSentences } from "../utils/text.ts";
+import { countWords } from "../utils/words.ts";
 
 const MAX_WORDS_PER_CUE = 16;
 
 const normalizeText = (text: string): string =>
-  text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ").trim();
+
+const splitByUnitBudget = (sentence: string): string[] => {
+  const words = sentence.split(/\s+/).filter(Boolean);
+  // Chinese runs contain no spaces, so fall back to slicing characters.
+  if (words.length === 1) {
+    const characters = [...sentence];
+    const perChunk = Math.max(
+      1,
+      Math.ceil(characters.length / Math.ceil(countWords(sentence) / MAX_WORDS_PER_CUE)),
+    );
+    const chunks: string[] = [];
+    for (let index = 0; index < characters.length; index += perChunk) {
+      chunks.push(characters.slice(index, index + perChunk).join(""));
+    }
+
+    return chunks;
+  }
+
+  const chunks: string[] = [];
+  let current: string[] = [];
+  for (const word of words) {
+    current.push(word);
+    if (countWords(current.join(" ")) >= MAX_WORDS_PER_CUE) {
+      chunks.push(current.join(" "));
+      current = [];
+    }
+  }
+  if (current.length > 0) {
+    chunks.push(current.join(" "));
+  }
+
+  return chunks;
+};
 
 const chunkNarration = (text: string): string[] => {
-  const sentences = text
-    .trim()
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  const sentences = splitSentences(text);
   const chunks: string[] = [];
 
   for (const sentence of sentences) {
-    const words = sentence.split(/\s+/);
-    if (words.length <= MAX_WORDS_PER_CUE) {
+    if (countWords(sentence) <= MAX_WORDS_PER_CUE) {
       chunks.push(sentence);
       continue;
     }
 
-    const clauses = sentence
-      .match(/[^,;:]+[,;:]?/g)
-      ?.map((clause) => clause.trim())
-      .filter(Boolean);
-    if (clauses && clauses.every((clause) => clause.split(/\s+/).length <= MAX_WORDS_PER_CUE)) {
+    const clauses = splitClauses(sentence);
+    if (
+      clauses.length > 1 &&
+      clauses.every((clause) => countWords(clause) <= MAX_WORDS_PER_CUE)
+    ) {
       chunks.push(...clauses);
       continue;
     }
 
-    for (let index = 0; index < words.length; index += MAX_WORDS_PER_CUE) {
-      chunks.push(words.slice(index, index + MAX_WORDS_PER_CUE).join(" "));
-    }
+    chunks.push(...splitByUnitBudget(sentence));
   }
 
   return chunks.length > 0 ? chunks : [text];
@@ -59,7 +87,7 @@ export const generateCaptions = (storyboard: Storyboard): Storyboard => {
       Math.round((scene.audioDurationSeconds ?? scene.durationInSeconds * 0.9) * 1000),
     );
     const totalWords = chunks.reduce(
-      (sum, chunk) => sum + chunk.split(/\s+/).length,
+      (sum, chunk) => sum + countWords(chunk),
       0,
     );
     let elapsedMs = 0;
@@ -70,7 +98,7 @@ export const generateCaptions = (storyboard: Storyboard): Storyboard => {
       const durationMs = isLast
         ? usableMs - elapsedMs
         : Math.round(
-            (text.split(/\s+/).length / Math.max(1, totalWords)) * usableMs,
+            (countWords(text) / Math.max(1, totalWords)) * usableMs,
           );
       elapsedMs += durationMs;
       const endMs = sceneStartMs + elapsedMs;

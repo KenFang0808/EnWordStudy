@@ -12,6 +12,7 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
   const isPortrait = height > width;
   const items = scene.visual.items ?? [];
   const isSingleBlock = !scene.onScreenText.subtitle && items.length === 0;
+  const callToAction = scene.onScreenText.body?.trim();
   const emphasisMotionStyle = isSingleBlock
     ? {
         opacity: interpolate(frame, [0, 0.4 * fps], [0.72, 1], {
@@ -25,6 +26,21 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
           easing: Easing.bezier(0.22, 1, 0.36, 1),
         })})`,
         transformOrigin: "center center",
+      }
+    : undefined;
+  const callToActionStart = Math.round(scene.durationInSeconds * fps * 0.42);
+  const callToActionStyle = callToAction
+    ? {
+        opacity: interpolate(
+          frame,
+          [callToActionStart, callToActionStart + 0.35 * fps],
+          [0, 1],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.22, 1, 0.36, 1),
+          },
+        ),
       }
     : undefined;
 
@@ -52,21 +68,40 @@ export const OutroScene: React.FC<StoryboardSceneProps> = ({ scene }) => {
           }}
         >
           {isSingleBlock ? (
-            <div style={emphasisMotionStyle}>
-              <Interactive.Div
-                name="Outro single block"
-                style={{
-                  fontFamily,
-                  fontSize: isPortrait ? 78 : 96,
-                  fontWeight: 800,
-                  color: "#F8FAFC",
-                  lineHeight: 1.14,
-                  letterSpacing: -1.6,
-                  textAlign: "center",
-                }}
-              >
-                {scene.onScreenText.title}
-              </Interactive.Div>
+            <div>
+              <div style={emphasisMotionStyle}>
+                <Interactive.Div
+                  name="Outro single block"
+                  style={{
+                    fontFamily,
+                    fontSize: isPortrait ? 78 : 96,
+                    fontWeight: 800,
+                    color: "#F8FAFC",
+                    lineHeight: 1.14,
+                    letterSpacing: -1.6,
+                    textAlign: "center",
+                  }}
+                >
+                  {scene.onScreenText.title}
+                </Interactive.Div>
+              </div>
+              {callToAction ? (
+                <Interactive.Div
+                  name="Outro call to action"
+                  style={{
+                    ...callToActionStyle,
+                    marginTop: isPortrait ? 36 : 32,
+                    fontFamily,
+                    fontSize: isPortrait ? 36 : 38,
+                    fontWeight: 700,
+                    color: scene.visual.accentColor ?? "#38BDF8",
+                    letterSpacing: 1.2,
+                    textAlign: "center",
+                  }}
+                >
+                  {callToAction}
+                </Interactive.Div>
+              ) : null}
             </div>
           ) : (
             <Title text={scene.onScreenText.title} name="Outro title" />

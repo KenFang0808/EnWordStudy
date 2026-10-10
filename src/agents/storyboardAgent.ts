@@ -7,6 +7,11 @@ import {
   type SceneType,
   type Storyboard,
 } from "../models/storyboard.ts";
+import {
+  getOutroCallToAction,
+  withOutroCallToAction,
+} from "../utils/callToAction.ts";
+import { splitSentences } from "../utils/text.ts";
 import { countWords } from "../utils/words.ts";
 
 const SCENE_PLAN: Array<{
@@ -24,7 +29,7 @@ const SCENE_PLAN: Array<{
 ];
 
 const closingSentences = (script: Script): string[] =>
-  script.closing.split(/(?<=[.!?])\s+/).filter(Boolean);
+  splitSentences(script.closing);
 
 const closingFor = (
   script: Script,
@@ -47,7 +52,10 @@ const narrationFor = (script: Script, planIndex: number): string => {
     return closingFor(script, "memory");
   }
   if (plan.sectionIndex === "practice") {
-    return closingFor(script, "outro");
+    return withOutroCallToAction(
+      closingFor(script, "outro"),
+      script.language,
+    );
   }
 
   const section = script.sections[plan.sectionIndex];
@@ -131,6 +139,10 @@ export const generateStoryboard = (
                 plan.type === "list"
               ? undefined
               : section?.points?.[0],
+        body:
+          plan.type === "outro"
+            ? getOutroCallToAction(request.language)
+            : undefined,
         pronunciation:
           plan.type === "intro" ? script.vocabulary.pronunciation : undefined,
         partOfSpeech:

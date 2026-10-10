@@ -1,6 +1,7 @@
+import { countSpokenUnits } from "./text.ts";
+
 export const countWords = (text: string): number => {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  return words.length;
+  return Math.round(countSpokenUnits(text));
 };
 
 export const targetWordCount = (durationSeconds: number): { min: number; max: number } => {

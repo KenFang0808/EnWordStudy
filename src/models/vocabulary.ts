@@ -7,6 +7,8 @@ export const VOCABULARY_SECTION_IDS = [
   "contrast",
 ] as const;
 
+export const vocabularyStyleSchema = z.enum(["en", "bilingual"]);
+
 export const vocabularyProfileSchema = z.object({
   word: z
     .string()
@@ -26,12 +28,29 @@ const vocabularySectionSchema = z.object({
 });
 
 export const vocabularyEntrySchema = vocabularyProfileSchema.extend({
+  style: vocabularyStyleSchema.default("en"),
   hook: z.string().min(1),
   sections: z.array(vocabularySectionSchema).length(4),
   closing: z.string().min(1),
 });
 
-export const vocabularyCatalogSchema = z.array(vocabularyEntrySchema);
+export const vocabularyCatalogSchema = z
+  .array(vocabularyEntrySchema)
+  .superRefine((entries, context) => {
+    const variants = new Set<string>();
+    entries.forEach((entry, index) => {
+      const key = `${entry.word.toLowerCase()}:${entry.style}`;
+      if (variants.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "style"],
+          message: `Duplicate "${entry.style}" variant for "${entry.word}".`,
+        });
+      }
+      variants.add(key);
+    });
+  });
 
 export type VocabularyProfile = z.infer<typeof vocabularyProfileSchema>;
 export type VocabularyEntry = z.infer<typeof vocabularyEntrySchema>;
+export type VocabularyStyle = z.infer<typeof vocabularyStyleSchema>;
