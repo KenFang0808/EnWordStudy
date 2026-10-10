@@ -11,6 +11,10 @@ import { generateVoice } from "../agents/voiceAgent.ts";
 import { PATHS } from "../utils/assets.ts";
 import { getEnv, loadDotEnv } from "../utils/env.ts";
 import {
+  acquireGenerateLock,
+  releaseGenerateLock,
+} from "../utils/generateLock.ts";
+import {
   buildOutputStem,
   nextFinalOutputPath,
 } from "../utils/outputName.ts";
@@ -52,6 +56,12 @@ const fail = (stage: string, error: unknown): never => {
 
 const generateVideo = async (): Promise<PipelineState> => {
   loadDotEnv();
+  try {
+    acquireGenerateLock();
+  } catch (error) {
+    return fail("generate-lock", error);
+  }
+  process.on("exit", releaseGenerateLock);
   let ttsProvider = "unknown";
 
   let state: PipelineState;
