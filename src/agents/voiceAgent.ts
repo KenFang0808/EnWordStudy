@@ -8,6 +8,7 @@ import { PATHS } from "../utils/assets.ts";
 import { getLocalAudioDurationSeconds, requireCommand } from "../utils/audio.ts";
 import { getEnv } from "../utils/env.ts";
 import { hasCjkCharacters, isChineseLanguage } from "../utils/text.ts";
+import { annotateSpokenPronunciations } from "./englishPronunciation.ts";
 
 const TAIL_SECONDS = 0.3;
 const MIN_SCENE_SECONDS = 3;
@@ -115,6 +116,7 @@ const synthesizeWithIndexTTS = (
   narration: string,
   outputPath: string,
   language: string,
+  topic: string,
 ): void => {
   const root = resolveIndexTtsRoot();
   const scriptPath = join(root, "generate_audio.py");
@@ -136,10 +138,18 @@ const synthesizeWithIndexTTS = (
     throw new Error(`IndexTTS voice prompt is missing: ${voicePath}`);
   }
 
+  const spoken = annotateSpokenPronunciations(narration, topic);
+  const hinted = [
+    ...new Set([...spoken.matchAll(/<([^|>]+)\|/g)].map((match) => match[1])),
+  ];
+  if (hinted.length > 0) {
+    console.log(`Voice Agent: pronunciation hints: ${hinted.join(", ")}`);
+  }
+
   const args = [
     scriptPath,
     "--text",
-    narration,
+    spoken,
     "--lang",
     mapIndexTtsLanguage(language),
     "--voice",
@@ -314,6 +324,7 @@ const synthesizeScene = async (
   narration: string,
   outputPath: string,
   language: string,
+  topic: string,
 ): Promise<string> => {
   if (getEnv("ELEVENLABS_API_KEY") && getEnv("ELEVENLABS_VOICE_ID")) {
     try {
@@ -349,7 +360,7 @@ const synthesizeScene = async (
   }
 
   try {
-    synthesizeWithIndexTTS(narration, outputPath, language);
+    synthesizeWithIndexTTS(narration, outputPath, language, topic);
     return "index-tts";
   } catch (error) {
     console.warn(
@@ -388,6 +399,7 @@ export const generateVoice = async (
       scene.narration,
       absoluteFile,
       storyboard.language,
+      storyboard.topic,
     );
     const audioDurationSeconds = getLocalAudioDurationSeconds(absoluteFile);
     scenes.push({
